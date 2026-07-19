@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Crystal Structures — FCC · BCC · HCP</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  #app{display:flex;flex-direction:column;height:100vh;}
+  header{padding:13px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;font-weight:700;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  .bar{display:flex;flex-wrap:wrap;gap:7px 8px;align-items:center;padding:9px 16px;background:#fff;border-bottom:1px solid var(--line);}
+  .grp{display:flex;gap:6px;align-items:center;}
+  .sep{width:1px;height:26px;background:var(--line);margin:0 3px;}
+  .lbl{font-size:10.5px;font-weight:700;letter-spacing:.5px;color:var(--mut);text-transform:uppercase;}
+  button{font-family:inherit;font-size:13.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);
+    padding:7px 12px;border-radius:8px;cursor:pointer;transition:all .12s;}
+  button:hover{border-color:var(--steel);}
+  button.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  button.act{background:var(--steel);color:#fff;border-color:var(--steel);}
+  button:disabled{opacity:.45;cursor:default;}
+  #stage{position:relative;flex:1;min-height:0;}
+  canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;}
+  canvas:active{cursor:grabbing;}
+  #counter{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(255,255,255,.93);
+    border:1px solid var(--line);border-radius:10px;padding:7px 18px;font-family:Cambria,Georgia,serif;font-size:21px;
+    font-weight:700;color:var(--navy);box-shadow:0 2px 10px rgba(31,56,100,.10);min-width:160px;text-align:center;}
+  #counter .sub{display:block;font-family:Calibri,sans-serif;font-size:12px;font-weight:600;color:var(--mut);margin-top:1px;}
+  #facts{position:absolute;left:14px;bottom:14px;background:rgba(255,255,255,.94);border:1px solid var(--line);
+    border-radius:10px;padding:9px 13px;font-size:12.5px;line-height:1.5;box-shadow:0 2px 10px rgba(31,56,100,.10);max-width:250px;}
+  #facts b{color:var(--navy);}
+  #hint{position:absolute;right:14px;bottom:14px;color:var(--mut);font-size:11.5px;font-style:italic;
+    background:rgba(241,244,248,.82);padding:5px 10px;border-radius:8px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Crystal Structures of Metals</h1>
+    <p>Drag to rotate · scroll to zoom · ENGR 170 — Introduction to Materials Science &amp; Engineering</p>
+  </header>
+  <div class="bar">
+    <div class="grp">
+      <span class="lbl">Structure</span>
+      <button id="b-fcc" class="on" onclick="pick('fcc')">FCC</button>
+      <button id="b-bcc" onclick="pick('bcc')">BCC</button>
+      <button id="b-hcp" onclick="pick('hcp')">HCP</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <span class="lbl">Show</span>
+      <button id="m-faces" onclick="run('faces')">Count faces</button>
+      <button id="m-edges" onclick="run('edges')">Count edges</button>
+      <button id="m-coord" onclick="run('coord')">Coordination #</button>
+      <button id="m-apf" onclick="run('apf')">APF · inflate</button>
+      <button id="m-stack" onclick="run('stack')">Stacking</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <button onclick="reset()">Reset</button>
+      <button id="b-spin" class="on" onclick="toggleSpin()">Auto-rotate: on</button>
+    </div>
+  </div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="counter"></div>
+    <div id="facts"></div>
+    <div id="hint">Drag to rotate · scroll to zoom</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const COL={gold:0xF2B705,goldEmis:0x5a4300,edge:0x3F4A5A,edgeHi:0xB85042,faceHi:0x2E5496,
+  teal:0x1F7A63,terra:0xB85042,steel:0x2E5496,navy:0x1F3864,ghost:0xB9C6E0};
+const NAMES={fcc:"Face-Centered Cubic",bcc:"Body-Centered Cubic",hcp:"Hexagonal Close-Packed"};
+const INFO={
+ fcc:{cell:"4 atoms/cell",cn:"CN 12",apf:"APF 0.74",f:6,e:12,touchR:Math.SQRT2/4,baseR:0.15,dir:"face diagonal"},
+ bcc:{cell:"2 atoms/cell",cn:"CN 8",apf:"APF 0.68",f:6,e:12,touchR:Math.sqrt(3)/4,baseR:0.15,dir:"body diagonal"},
+ hcp:{cell:"6 atoms/cell",cn:"CN 12",apf:"APF 0.74",f:8,e:18,touchR:0.5,baseR:0.20,dir:"basal edge"}
+};
+let scene,camera,renderer,group,current="fcc",mode="cell";
+let atomMeshes=[],faceMeshes=[],edgeMeshes=[],cpLine=null;
+let running=false,tok=0,spin=true,zoom=1;
+let apfCur=0,apfTgt=0,apfActive=false;
+
+function sphere(r){return new THREE.SphereGeometry(r,26,20);}
+function goldMat(){return new THREE.MeshStandardMaterial({color:COL.gold,emissive:COL.goldEmis,emissiveIntensity:.18,roughness:.42,metalness:.25});}
+function solidMat(c){return new THREE.MeshStandardMaterial({color:c,roughness:.5,metalness:.15});}
+function cyl(p,q,color,rad){
+  const a=new THREE.Vector3(...p),b=new THREE.Vector3(...q),dir=new THREE.Vector3().subVectors(b,a),len=dir.length();
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad,len,12),new THREE.MeshStandardMaterial({color,roughness:.6,metalness:.1}));
+  m.position.copy(a).add(b).multiplyScalar(.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());
+  return m;
+}
+function faceMesh(verts){
+  const pts=verts.map(v=>new THREE.Vector3(...v)),pos=[];
+  for(let i=1;i<pts.length-1;i++)pos.push(pts[0].x,pts[0].y,pts[0].z,pts[i].x,pts[i].y,pts[i].z,pts[i+1].x,pts[i+1].y,pts[i+1].z);
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.computeVertexNormals();
+  return new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:COL.faceHi,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
+}
+function newGroup(){ if(group)scene.remove(group); group=new THREE.Group(); atomMeshes=[];faceMeshes=[];edgeMeshes=[];cpLine=null; scene.add(group); }
+function addAtom(pos,r,mat){const m=new THREE.Mesh(sphere(1),mat);m.scale.setScalar(r);m.position.set(...pos);m.userData.baseR=r;group.add(m);atomMeshes.push(m);return m;}
+function centerGroup(shift,scl){group.children.forEach(o=>o.position.sub(new THREE.Vector3(...shift)));group.scale.setScalar(scl);group.rotation.set(0.42,-0.66,0);}
+
+// ---------- geometry ----------
+function cubeCorners(){const c=[];for(const x of[0,1])for(const y of[0,1])for(const z of[0,1])c.push([x,y,z]);return c;}
+function cubeEdges(){const C=cubeCorners(),e=[];for(let i=0;i<8;i++)for(let j=i+1;j<8;j++){let d=0;for(let k=0;k<3;k++)d+=C[i][k]!==C[j][k];if(d===1)e.push([C[i],C[j]]);}return e;}
+function cubeFaces(){const C=cubeCorners(),f=[],ord=[[2,0],[2,1],[0,0],[0,1],[1,0],[1,1]];
+  for(const[ax,val]of ord){let vs=C.filter(c=>c[ax]===val),o=[0,1,2].filter(k=>k!==ax);
+    vs.sort((p,q)=>Math.atan2(p[o[1]]-.5,p[o[0]]-.5)-Math.atan2(q[o[1]]-.5,q[o[0]]-.5));f.push(vs);}return f;}
+function hexGeom(){const H=1.7,top=[],bot=[];
+  for(let k=0;k<6;k++){const a=k*Math.PI/3;top.push([Math.cos(a),Math.sin(a),H]);bot.push([Math.cos(a),Math.sin(a),0]);}
+  const edges=[];for(let k=0;k<6;k++){edges.push([top[k],top[(k+1)%6]]);edges.push([bot[k],bot[(k+1)%6]]);edges.push([top[k],bot[k]]);}
+  const faces=[top.slice(),bot.slice()];for(let k=0;k<6;k++)faces.push([top[k],top[(k+1)%6],bot[(k+1)%6],bot[k]]);
+  let atoms=top.concat(bot);atoms.push([0,0,H]);atoms.push([0,0,0]);
+  for(const a of[Math.PI/2,7*Math.PI/6,11*Math.PI/6])atoms.push([0.58*Math.cos(a),0.58*Math.sin(a),H/2]);
+  return{atoms,edges,faces,H};
+}
+
+// ---------- build the unit cell ----------
+function buildCell(s){
+  newGroup(); mode="cell"; apfActive=false; apfCur=0; apfTgt=0;
+  const R=INFO[s].baseR;
+  if(s==='hcp'){
+    const g=hexGeom();
+    g.faces.forEach(f=>{const m=faceMesh(f);group.add(m);faceMeshes.push(m);});
+    g.edges.forEach(([p,q])=>{const m=cyl(p,q,COL.edge,0.03);group.add(m);edgeMeshes.push(m);});
+    g.atoms.forEach(a=>addAtom(a,R,goldMat()));
+    centerGroup([0,0,g.H/2],1.5);
+  }else{
+    cubeFaces().forEach(f=>{const m=faceMesh(f);group.add(m);faceMeshes.push(m);});
+    cubeEdges().forEach(([p,q])=>{const m=cyl(p,q,COL.edge,0.028);group.add(m);edgeMeshes.push(m);});
+    let atoms=cubeCorners();
+    if(s==='fcc')cubeFaces().forEach(f=>{let m=[0,1,2].map(k=>f.reduce((t,v)=>t+v[k],0)/4);atoms.push(m);});
+    if(s==='bcc')atoms.push([.5,.5,.5]);
+    atoms.forEach(a=>addAtom(a,R,goldMat()));
+    centerGroup([.5,.5,.5],3.2/2.6);
+  }
+  setInfo(s);
+}
+
+// ---------- coordination ----------
+function coordData(s){
+  if(s==='fcc'){const nb=[];for(const p of[[.5,.5,0],[.5,-.5,0],[-.5,.5,0],[-.5,-.5,0],[.5,0,.5],[.5,0,-.5],[-.5,0,.5],[-.5,0,-.5],[0,.5,.5],[0,.5,-.5],[0,-.5,.5],[0,-.5,-.5]])nb.push(p);
+    return{center:[0,0,0],nb,cell:[[0,0,0],[1,1,1]],note:"12 neighbors — half reach into adjacent cells",n:12};}
+  if(s==='bcc'){return{center:[.5,.5,.5],nb:cubeCorners(),cell:[[0,0,0],[1,1,1]],note:"body-center atom touches 8 corner atoms",n:8};}
+  const nb=[];for(let k=0;k<6;k++){const a=k*Math.PI/3;nb.push([Math.cos(a),Math.sin(a),0]);}
+  const h=Math.sqrt(2/3);for(const a of[Math.PI/2,7*Math.PI/6,11*Math.PI/6]){nb.push([0.577*Math.cos(a),0.577*Math.sin(a),h]);nb.push([0.577*Math.cos(a),0.577*Math.sin(a),-h]);}
+  return{center:[0,0,0],nb,cell:null,note:"6 in-plane + 3 above + 3 below = 12",n:12};
+}
+async function buildCoord(s){
+  newGroup(); mode="coord";
+  const d=coordData(s),R=0.34;
+  if(d.cell){ // faint reference cube edges
+    cubeEdges().forEach(([p,q])=>{const m=cyl(p,q,COL.ghost,0.012);m.material.transparent=true;m.material.opacity=.5;group.add(m);});
+  }
+  addAtom(d.center,R,solidMat(COL.navy));
+  const allx=d.nb.concat([d.center]);
+  const cx=allx.reduce((s0,p)=>s0+p[0],0)/allx.length, cy=allx.reduce((s0,p)=>s0+p[1],0)/allx.length, cz=allx.reduce((s0,p)=>s0+p[2],0)/allx.length;
+  const shift=new THREE.Vector3(cx,cy,cz);
+  centerGroup([cx,cy,cz], s==='hcp'?1.5:2.2);
+  setInfo(s);
+  // animate neighbors + bonds (added after centerGroup, so shift manually)
+  const myTok=tok; running=true;
+  for(let i=0;i<d.nb.length;i++){
+    if(myTok!==tok)return;
+    const nm=addAtom(d.nb[i],R,solidMat(COL.teal)); nm.position.sub(shift);
+    const bond=cyl(d.center,d.nb[i],COL.terra,0.02); bond.position.sub(shift); group.add(bond);
+    setCounter("CN = "+(i+1)+" / "+d.n, d.note, COL2(COL.teal));
+    await sleep(400);
+  }
+  running=false;
+}
+
+// ---------- APF inflate ----------
+function doAPF(s){
+  buildCell(s); mode="apf"; apfActive=true; apfTgt=1; apfCur=0;
+  // close-packed direction line
+  let p,q;
+  if(s==='fcc'){p=[0,0,0];q=[1,1,0];}
+  else if(s==='bcc'){p=[0,0,0];q=[1,1,1];}
+  else{p=[Math.cos(0),Math.sin(0),0];q=[Math.cos(Math.PI/3),Math.sin(Math.PI/3),0];}
+  const ln=cyl(p,q,COL.amber,0.02);
+  if(s==='hcp')ln.position.sub(new THREE.Vector3(0,0,hexGeom().H/2));else ln.position.sub(new THREE.Vector3(.5,.5,.5));
+  group.add(ln); cpLine=ln;
+  setCounter(INFO[s].apf, "atoms touch along the "+INFO[s].dir, COL2(COL.amber));
+  setInfo(s);
+}
+
+// ---------- stacking ----------
+function hexPatch(rad){const pts=[];for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){const x=i+0.5*j,y=(Math.sqrt(3)/2)*j;if(Math.hypot(x,y)<=rad+1e-6)pts.push([x,y]);}return pts;}
+async function buildStack(s){
+  newGroup(); mode="stack";
+  if(s==='bcc'){
+    buildCell('bcc'); mode="stack";
+    setCounter("BCC is not close-packed","APF 0.68 — no ABAB/ABCABC stacking",COL2(COL.terra));
+    document.getElementById('facts').innerHTML="<b>BCC</b> does not form close-packed layers.<br>Only <b>FCC</b> (ABCABC) and <b>HCP</b> (ABAB) stack close-packed planes.";
+    return;
+  }
+  const seq = s==='fcc'?['A','B','C','A']:['A','B','A','B'];
+  const off={A:[0,0],B:[0.5,Math.sqrt(3)/6],C:[1.0,Math.sqrt(3)/3]};
+  const colOf={A:COL.gold,B:COL.teal,C:COL.terra};
+  const dz=Math.sqrt(2/3),R=0.5,patch=hexPatch(2.05);
+  const nlayers=seq.length, zc=(nlayers-1)*dz/2;
+  centerGroup([0,0,0],1.05); group.position.set(0,0,0);
+  setInfo(s);
+  const myTok=tok; running=true;
+  for(let L=0;L<seq.length;L++){
+    if(myTok!==tok)return;
+    const letter=seq[L],o=off[letter],mat=solidMat(colOf[letter]);
+    patch.forEach(([x,y])=>{
+      const m=new THREE.Mesh(sphere(R),mat.clone());
+      m.position.set((x+o[0])-0, (y+o[1])-0, L*dz-zc); group.add(m);
+    });
+    const shown=seq.slice(0,L+1).join('');
+    const label = s==='fcc' ? (L>=2?"A B C…":shown) : shown;
+    setCounter((s==='fcc'?"ABCABC":"ABAB"), "stacking: "+shown+(L===seq.length-1?"  ✓":""), COL2(colOf[letter]));
+    await sleep(700);
+  }
+  if(myTok!==tok)return;
+  if(s==='fcc') document.getElementById('facts').innerHTML="<b>FCC = ABCABC</b><br>The close-packed planes are the <b>{111} planes</b>, tilted diagonally inside the cube.<br>APF 0.74 · CN 12";
+  else document.getElementById('facts').innerHTML="<b>HCP = ABAB</b><br>Close-packed basal planes stack directly over every other layer.<br>APF 0.74 · CN 12";
+  running=false;
+}
+
+// ---------- counting (slower) ----------
+async function countFaces(s){
+  running=true; const myTok=tok;
+  for(let i=0;i<faceMeshes.length;i++){ if(myTok!==tok)return;
+    faceMeshes[i].material.color.setHex(COL.faceHi); faceMeshes[i].material.opacity=0.42;
+    setCounter("Faces: "+(i+1)+" / "+faceMeshes.length,"each shared between cells",COL2(COL.steel));
+    await sleep(650);
+  }
+  running=false;
+}
+async function countEdges(s){
+  running=true; const myTok=tok;
+  for(let i=0;i<edgeMeshes.length;i++){ if(myTok!==tok)return;
+    edgeMeshes[i].material.color.setHex(COL.edgeHi); edgeMeshes[i].scale.set(1.9,1,1.9);
+    setCounter("Edges: "+(i+1)+" / "+edgeMeshes.length,"shared where cells meet",COL2(COL.terra));
+    await sleep(420);
+  }
+  running=false;
+}
+
+// ---------- dispatch ----------
+function run(m){
+  tok++; running=false;
+  clearMbtns(); const b=document.getElementById('m-'+m); if(b)b.classList.add('act');
+  if(m==='faces'||m==='edges'){ if(mode!=='cell')buildCell(current); resetOverlays(); (m==='faces'?countFaces:countEdges)(current); }
+  else if(m==='coord'){ buildCoord(current); }
+  else if(m==='apf'){ doAPF(current); }
+  else if(m==='stack'){ buildStack(current); }
+}
+function pick(s){
+  ['fcc','bcc','hcp'].forEach(k=>document.getElementById('b-'+k).classList.toggle('on',k===s));
+  tok++; running=false; clearMbtns(); current=s; buildCell(s);
+}
+function reset(){ tok++; running=false; clearMbtns(); buildCell(current); }
+function clearMbtns(){['faces','edges','coord','apf','stack'].forEach(k=>document.getElementById('m-'+k).classList.remove('act'));}
+function resetOverlays(){faceMeshes.forEach(m=>{m.material.opacity=0;});edgeMeshes.forEach(m=>{m.material.color.setHex(COL.edge);m.scale.set(1,1,1);});}
+
+// ---------- ui helpers ----------
+function COL2(hex){return '#'+hex.toString(16).padStart(6,'0');}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function setCounter(t,sub,col){const c=document.getElementById('counter');c.style.color=col||'var(--navy)';c.innerHTML=t+'<span class="sub">'+sub+'</span>';}
+function setInfo(s){const F=INFO[s];
+  document.getElementById('counter').innerHTML=NAMES[s]+'<span class="sub">drag to rotate</span>';
+  document.getElementById('counter').style.color='var(--navy)';
+  document.getElementById('facts').innerHTML=`<b>${NAMES[s]}</b><br>${F.cell} · ${F.cn} · ${F.apf}`+
+    `<br><span style="color:var(--mut)">${F.f} faces · ${F.e} edges</span>`;
+}
+function toggleSpin(){spin=!spin;const b=document.getElementById('b-spin');b.classList.toggle('on',spin);b.textContent='Auto-rotate: '+(spin?'on':'off');}
+
+// ---------- three setup ----------
+function init(){
+  const cv=document.getElementById('cv');
+  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+  scene=new THREE.Scene();
+  camera=new THREE.PerspectiveCamera(38,1,0.1,100); camera.position.set(0,0,7);
+  scene.add(new THREE.AmbientLight(0xffffff,0.72));
+  const d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(4,6,8);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0xffffff,0.32);d2.position.set(-5,-3,-4);scene.add(d2);
+  buildCell('fcc'); resize(); window.addEventListener('resize',resize); setupDrag(cv); animate();
+}
+function resize(){const s=document.getElementById('stage');renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(s.clientWidth,s.clientHeight,false);camera.aspect=s.clientWidth/s.clientHeight;camera.updateProjectionMatrix();}
+function setupDrag(cv){let down=false,px=0,py=0;
+  cv.addEventListener('pointerdown',e=>{down=true;px=e.clientX;py=e.clientY;cv.setPointerCapture(e.pointerId);});
+  cv.addEventListener('pointerup',()=>down=false);
+  cv.addEventListener('pointermove',e=>{if(!down)return;group.rotation.y+=(e.clientX-px)*0.01;group.rotation.x+=(e.clientY-py)*0.01;px=e.clientX;py=e.clientY;});
+  cv.addEventListener('wheel',e=>{e.preventDefault();zoom*=(e.deltaY>0?1.08:0.93);zoom=Math.max(0.5,Math.min(2.2,zoom));camera.position.z=7*zoom;},{passive:false});
+}
+function animate(){requestAnimationFrame(animate);
+  if(spin&&group)group.rotation.y+=0.006;
+  if(mode==='apf'&&apfActive){apfCur+=(apfTgt-apfCur)*0.06;
+    atomMeshes.forEach(m=>{const t=m.userData.baseR,touch=INFO[current].touchR;const r=t+(touch-t)*apfCur;m.scale.setScalar(r);});}
+  renderer.render(scene,camera);
+}
+init();
+</script>
+</body>
+</html>

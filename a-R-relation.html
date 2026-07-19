@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Deriving the a–R relation — FCC · BCC · HCP</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--gold:#F2B705;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  #app{display:flex;flex-direction:column;height:100vh;}
+  header{padding:11px 20px 8px;background:var(--navy);color:#fff;display:flex;align-items:baseline;gap:14px;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;font-weight:700;}
+  header .sub{color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:11px;min-height:42px;}
+  #cap .chip{background:var(--navy);color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 9px;white-space:nowrap;}
+  #cap .txt{font-size:13.5px;color:var(--ink);}
+  #bar{display:flex;gap:9px;align-items:center;padding:9px 18px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  .seg{display:flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;}
+  .seg button{border:none;border-radius:0;padding:7px 15px;background:#fff;}
+  .seg button.on{background:var(--navy);color:#fff;}
+  button{font-family:inherit;font-size:13.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:7px 13px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);} button.pri{background:var(--navy);color:#fff;border-color:var(--navy);}
+  #which{margin-left:auto;font-size:12px;color:var(--mut);}
+  #cvwrap{flex:1;min-height:0;position:relative;}
+  canvas{display:block;width:100%;height:100%;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header><h1>Deriving the a–R relation</h1><span class="sub">ENGR 170 · a–R relation</span></header>
+  <div id="cap"><span class="chip" id="chip">START</span><span class="txt" id="txt"></span></div>
+  <div id="bar">
+    <span style="font-size:12px;font-weight:700;color:var(--mut)">Structure</span>
+    <div class="seg" id="seg">
+      <button data-s="fcc" class="on">FCC</button><button data-s="bcc">BCC</button><button data-s="hcp">HCP</button>
+    </div>
+    <button class="pri" id="play">▶ Play</button>
+    <button id="step">⏭ Step</button>
+    <button id="reset">↺ Reset</button>
+    <span id="which"></span>
+  </div>
+  <div id="cvwrap"><canvas id="cv"></canvas></div>
+</div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const C={navy:"#1F3864",steel:"#2E5496",terra:"#B85042",teal:"#1F7A63",amber:"#E8890C",gold:"#F2B705",
+  gedge:"#6B4E00",ink:"#21262E",mut:"#6B7480",line:"#C7CFDA",bg:"#F1F4F8",white:"#fff"};
+const SEQ={fcc:[0,1,2,5], bcc:[0,3,5], hcp:[0,4,5]};
+let structure="fcc", idx=0, beat=0, tp=0, playing=false, holdT=0, W,H,dpr;
+const CAP={
+ 0:["DEFINE","You watched the atoms touch along a diagonal — now let's measure it. a = cell edge, R = atomic radius; in FCC & BCC atoms touch along a diagonal, not the edge."],
+ 1:["FCC","Flatten the cube's front face into a square of side a, and draw its face diagonal."],
+ 2:["FCC","Three atoms fill the face diagonal: R + 2R + R = 4R. Pythagoras: diagonal = a√2. So 4R = a√2 → a = 2√2·R."],
+ 3:["BCC","Build the body diagonal from two right triangles: a and a√2 give a√3. Atoms fill it: 4R = a√3 → a = 4R/√3."],
+ 4:["HCP","Atoms touch straight along the basal edge: a = 2R. Ideal c/a = √(8/3) = 1.633 — no diagonal gymnastics."],
+ 5:["PAYOFF","a in terms of R → cell volume V_c = a³ → theoretical density ρ = nA / (V_c·N_A). The atomic radius alone gives the density."]
+};
+function resize(){dpr=Math.min(devicePixelRatio,2);cv.width=cv.clientWidth*dpr;cv.height=cv.clientHeight*dpr;W=cv.clientWidth;H=cv.clientHeight;}
+window.addEventListener('resize',resize);
+const ease=t=>t<0?0:t>1?1:t*t*(3-2*t);
+// ---- primitives (CSS-px coords; scaled by dpr via setTransform) ----
+function line(a,b,c,d,col,w,dash){ctx.beginPath();ctx.setLineDash(dash||[]);ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.stroke();ctx.setLineDash([]);}
+function atom(x,y,r,alpha){ctx.globalAlpha=alpha==null?1:alpha;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=C.gold;ctx.strokeStyle=C.gedge;ctx.lineWidth=2;ctx.fill();ctx.stroke();ctx.globalAlpha=1;}
+function T(s,x,y,col,sz,al,serif,bold){ctx.fillStyle=col;ctx.font=(bold?'bold ':'')+sz+'px '+(serif?'Cambria,Georgia,serif':'Calibri,sans-serif');ctx.textAlign=al||'center';ctx.textBaseline='middle';ctx.fillText(s,x,y);}
+function boxEq(s,cx,cy,sz){ctx.font='bold '+sz+'px Cambria,Georgia,serif';const w=ctx.measureText(s).width+34,h=sz+26;
+  ctx.beginPath();roundRect(cx-w/2,cy-h/2,w,h,10);ctx.fillStyle=C.navy;ctx.fill();T(s,cx,cy,"#fff",sz,'center',true,true);}
+function roundRect(x,y,w,h,r){ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function rightAngle(x,y,dx1,dy1,dx2,dy2,col){const s=12;ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.beginPath();
+  ctx.moveTo(x+dx1*s,y+dy1*s);ctx.lineTo(x+dx1*s+dx2*s,y+dy1*s+dy2*s);ctx.lineTo(x+dx2*s,y+dy2*s);ctx.stroke();}
+
+// ---------------- BEATS ----------------
+function beat0(){
+  const cx=W*0.30, cy=H*0.52, a=Math.min(W*0.22,H*0.34);
+  // cube edge (a square cell face, edge labelled a)
+  ctx.strokeStyle=C.steel;ctx.lineWidth=2.5;ctx.strokeRect(cx-a/2,cy-a/2,a,a);
+  line(cx-a/2,cy+a/2+26,cx+a/2,cy+a/2+26,C.steel,2);
+  T("a",cx,cy+a/2+40,C.steel,17,'center',true,true);
+  T("cell edge length (lattice parameter)",cx,cy+a/2+58,C.mut,12.5,'center');
+  // two touching atoms → 2R
+  const bx=W*0.72, by=H*0.42, R=Math.min(W*0.06,H*0.11);
+  atom(bx-R,by,R); atom(bx+R,by,R);
+  line(bx-R,by+R+18,bx+R,by+R+18,C.terra,2.5);
+  T("2R",bx,by+R+33,C.terra,16,'center',true,true);
+  // radius on left atom
+  line(bx-R,by,bx-R+R,by,C.gedge,2,[4,3]); T("R",bx-R+R*0.45,by-12,C.ink,14,'center',true,true);
+  T("R = atomic radius",bx,by-R-16,C.ink,13,'center');
+  // key idea
+  T("In FCC & BCC, atoms do NOT touch along the cell edge —",W*0.5,H*0.80,C.ink,14,'center');
+  T("they touch along a diagonal (the close-packed direction).",W*0.5,H*0.80+20,C.ink,14,'center');
+  T("That is why the a–R formula differs by structure.",W*0.5,H*0.80+40,C.navy,14,'center',false,true);
+}
+function fccFace(cx,cy,a,p){
+  // p: flatten progress (0 = skewed/oblique, 1 = square). draw square with atoms + optional diagonal
+  const skew=(1-p)*0.45*a;
+  const c=[[cx-a/2+skew,cy-a/2-skew*0.25],[cx+a/2+skew,cy-a/2-skew*0.25],[cx+a/2,cy+a/2],[cx-a/2,cy+a/2]];
+  ctx.strokeStyle=C.steel;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(c[0][0],c[0][1]);for(let i=1;i<4;i++)ctx.lineTo(c[i][0],c[i][1]);ctx.closePath();ctx.stroke();
+  return c;
+}
+function beat1(p){
+  const cx=W*0.42, cy=H*0.52, a=Math.min(W*0.30,H*0.46);
+  const c=fccFace(cx,cy,a,p);
+  T("FCC — flatten the front face to a square of side a",W*0.5,H*0.14,C.navy,15,'center',false,true);
+  // edge label
+  T("a",(c[3][0]+c[2][0])/2,c[2][1]+22,C.steel,16,'center',true,true);
+  // face diagonal appears as p grows
+  if(p>0.4){const q=ease((p-0.4)/0.6); line(c[3][0],c[3][1],c[3][0]+(c[1][0]-c[3][0])*q,c[3][1]+(c[1][1]-c[3][1])*q,C.terra,3);
+    if(p>0.9)T("face diagonal",(c[3][0]+c[1][0])/2+10,(c[3][1]+c[1][1])/2-14,C.terra,12.5,'center',false,true);}
+  // corner + face-center atoms (faint)
+  const R=a/(2*Math.SQRT2);
+  atom(c[3][0],c[3][1],R,0.85);atom(c[1][0],c[1][1],R,0.85);atom((c[0][0]+c[2][0])/2,(c[0][1]+c[2][1])/2,R,0.85);
+}
+function beat2(){
+  const cx=W*0.34, cy=H*0.54, a=Math.min(W*0.26,H*0.42), R=a/(2*Math.SQRT2);
+  // square
+  const L=cx-a/2,Rr=cx+a/2,Tp=cy-a/2,Bp=cy+a/2;
+  ctx.strokeStyle=C.steel;ctx.lineWidth=2.5;ctx.strokeRect(L,Tp,a,a);
+  // Pythagoras legs (steel) + labels
+  line(L,Bp,Rr,Bp,C.steel,2.5); line(Rr,Bp,Rr,Tp,C.steel,2.5);
+  T("a",(L+Rr)/2,Bp+20,C.steel,15,'center',true,true); T("a",Rr+16,(Tp+Bp)/2,C.steel,15,'center',true,true);
+  rightAngle(Rr,Bp,-1,0,0,-1,C.steel);
+  // face diagonal (terra) with 3 atoms: corner, face-center, corner
+  line(L,Bp,Rr,Tp,C.terra,3.5);
+  atom(L,Bp,R); atom((L+Rr)/2,(Tp+Bp)/2,R); atom(Rr,Tp,R);
+  // segment labels R + 2R + R = 4R along diagonal
+  const mx=(L+Rr)/2, my=(Tp+Bp)/2;
+  T("R",(L+mx)/2-14,(Bp+my)/2+14,C.terra,14,'center',true,true);
+  T("2R",mx+18,my+18,C.terra,14,'center',true,true);
+  T("R",(mx+Rr)/2+14,(my+Tp)/2-14,C.terra,14,'center',true,true);
+  T("diagonal = √(a² + a²) = a√2",cx,Tp-26,C.steel,14,'center',true,true);
+  T("along it: R + 2R + R = 4R",cx,Bp+46,C.terra,14,'center',true,true);
+  // solve
+  const ex=W*0.78;
+  T("Set equal and solve:",ex,H*0.30,C.ink,14,'center');
+  T("4R = a√2",ex,H*0.40,C.ink,20,'center',true,true);
+  T("a = 4R / √2 = 2√2·R",ex,H*0.50,C.ink,18,'center',true,true);
+  boxEq("a = 2√2·R ≈ 2.83 R",ex,H*0.63,22);
+}
+function beat3(p){
+  // nested triangles: face (a,a → a√2) then body (a√2, a → a√3)
+  const s=Math.min(W*0.16,H*0.26);           // unit = a in px
+  const ox=W*0.10, oy=H*0.66;
+  // Triangle 1: face square + diagonal  (legs a & a)
+  ctx.strokeStyle=C.steel;ctx.lineWidth=2.4;
+  const A=[ox,oy], B=[ox+s,oy], D=[ox,oy-s], E=[ox+s,oy-s];
+  ctx.strokeRect(ox,oy-s,s,s);
+  line(A[0],A[1],E[0],E[1],C.terra,3);  // face diagonal a√2
+  T("a",ox+s/2,oy+18,C.steel,14,'center',true,true); T("a",ox-15,oy-s/2,C.steel,14,'center',true,true);
+  T("face diagonal = a√2",ox+s*0.55,oy-s*0.55-2,C.terra,12.5,'left',false,true);
+  T("1. the face gives a√2",ox+s/2,oy-s-22,C.navy,12.5,'center',false,true);
+  // Triangle 2: base = a√2 (horizontal), height = a (rises), hyp = a√3 (body diagonal)
+  const base=s*Math.SQRT2; const bx=W*0.44, by=H*0.72;
+  const P0=[bx,by], P1=[bx+base,by];
+  const hgt=s*ease(p);
+  const P2=[bx+base, by-hgt];
+  line(P0[0],P0[1],P1[0],P1[1],C.terra,3);           // base a√2
+  line(P1[0],P1[1],P2[0],P2[1],C.steel,2.6);          // vertical leg a
+  line(P0[0],P0[1],P2[0],P2[1],C.navy,3.4);           // hypotenuse a√3 (body diagonal)
+  rightAngle(P1[0],P1[1],-1,0,0,-1,C.steel);
+  T("a√2",bx+base/2,by+18,C.terra,13,'center',true,true);
+  if(p>0.5)T("a",P1[0]+16,by-hgt/2,C.steel,13,'center',true,true);
+  if(p>0.85){T("body diagonal = √((a√2)² + a²) = a√3",bx+base*0.1,by-hgt-16,C.navy,13,'left',false,true);
+    // atoms on body diagonal: corner + body-center + corner = 4R
+    const R=s*Math.sqrt(3)/4; const dcx=(P0[0]+P2[0])/2,dcy=(P0[1]+P2[1])/2;
+    const ux=(P2[0]-P0[0]),uy=(P2[1]-P0[1]);const len=Math.hypot(ux,uy);
+    atom(P0[0]+ux*R/len,P0[1]+uy*R/len,R,0.9); atom(dcx,dcy,R,0.9); atom(P2[0]-ux*R/len,P2[1]-uy*R/len,R,0.9);
+    T("corner + body-center + corner = 4R",bx+base*0.5,by-hgt*0.5+40,C.terra,12.5,'center',false,true);
+  }
+  T("2. unfold: √((a√2)²+a²) = √(3a²) = a√3",W*0.44,H*0.30,C.navy,13.5,'center',false,true);
+  // solve
+  const ex=W*0.80;
+  T("4R = a√3",ex,H*0.42,C.ink,20,'center',true,true);
+  T("a = 4R / √3",ex,H*0.52,C.ink,18,'center',true,true);
+  boxEq("a = 4R/√3 ≈ 2.31 R",ex,H*0.64,22);
+}
+function beat4(){
+  const cx=W*0.34, cy=H*0.50, R=Math.min(W*0.075,H*0.14);
+  // basal edge: two touching atoms, center-to-center = a = 2R
+  atom(cx-R,cy,R); atom(cx+R,cy,R);
+  line(cx-R,cy+R+18,cx+R,cy+R+18,C.terra,3);
+  T("a = 2R",cx,cy+R+36,C.terra,17,'center',true,true);
+  T("atoms touch straight along the basal edge",cx,cy-R-20,C.ink,13,'center');
+  // hex hint
+  ctx.strokeStyle=C.line;ctx.lineWidth=1.6;ctx.beginPath();
+  for(let k=0;k<6;k++){const A=k*Math.PI/3;const x=cx+2.1*R*Math.cos(A),y=cy+1.2*R+2.1*R*Math.sin(A)*0.5;if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();ctx.stroke();
+  // results
+  const ex=W*0.74;
+  boxEq("a = 2R",ex,H*0.40,24);
+  T("ideal c/a = √(8/3) = 1.633",ex,H*0.55,C.ink,17,'center',true,true);
+  T("No diagonal gymnastics — which is exactly",ex,H*0.66,C.mut,12.5,'center');
+  T("why FCC and BCC needed them.",ex,H*0.66+18,C.mut,12.5,'center');
+}
+function beat5(){
+  const eqA={fcc:"a = 2√2·R",bcc:"a = 4R/√3",hcp:"a = 2R"}[structure];
+  T("The payoff — this feeds straight into theoretical density",W*0.5,H*0.16,C.navy,15,'center',false,true);
+  const y=H*0.42, xs=[W*0.20,W*0.50,W*0.80];
+  const cards=[[eqA,"a in terms of R"],["V_c = a³","cell volume"],["ρ = nA / (V_c·N_A)","theoretical density"]];
+  cards.forEach((cd,i)=>{ const w=W*0.24,h=H*0.20,x=xs[i]-w/2;
+    ctx.beginPath();roundRect(x,y-h/2,w,h,12);ctx.fillStyle=C.bg;ctx.fill();ctx.strokeStyle=i===2?C.terra:C.steel;ctx.lineWidth=1.6;ctx.stroke();
+    T(cd[0],xs[i],y-8,C.navy,i===2?18:20,'center',true,true); T(cd[1],xs[i],y+24,C.mut,12.5,'center');
+    if(i<2){T("→",(xs[i]+xs[i+1])/2,y,C.mut,26,'center',true,true);} });
+  T("Knowing a in terms of R gives the cell volume — and therefore the density —",W*0.5,H*0.68,C.ink,13.5,'center');
+  T("from the atomic radius alone.",W*0.5,H*0.68+20,C.ink,13.5,'center');
+}
+function scene(){
+  if(beat===0)beat0();
+  else if(beat===1)beat1(tp);
+  else if(beat===2)beat2();
+  else if(beat===3)beat3(tp);
+  else if(beat===4)beat4();
+  else if(beat===5)beat5();
+}
+function draw(){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);scene();
+  const [chip,tx]=CAP[beat];document.getElementById('chip').textContent="BEAT "+beat+" · "+chip;document.getElementById('txt').textContent=tx;
+  const seq=SEQ[structure];document.getElementById('which').textContent=(idx+1)+" / "+seq.length+"  ("+structure.toUpperCase()+")";}
+function setBeat(newIdx){const seq=SEQ[structure];idx=Math.max(0,Math.min(seq.length-1,newIdx));beat=seq[idx];tp=0;}
+function tick(){ if(tp<1)tp=Math.min(1,tp+0.03);
+  if(playing){ if(tp>=1){holdT+=1; if(holdT>70){holdT=0; if(idx<SEQ[structure].length-1)setBeat(idx+1); else playing=false;}} }
+  draw(); requestAnimationFrame(tick);}
+// controls
+document.getElementById('seg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  [...document.querySelectorAll('#seg button')].forEach(x=>x.classList.toggle('on',x===b));
+  structure=b.dataset.s;idx=0;beat=SEQ[structure][0];tp=0;playing=false;});
+document.getElementById('play').onclick=()=>{playing=true;if(idx>=SEQ[structure].length-1){setBeat(0);}holdT=0;};
+document.getElementById('step').onclick=()=>{playing=false;setBeat(idx+1);};
+document.getElementById('reset').onclick=()=>{playing=false;setBeat(0);};
+resize(); setBeat(0); requestAnimationFrame(tick);
+</script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Interatomic potential well U(r) — Morse</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--gold:#F2B705;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  #app{display:flex;flex-direction:column;height:100vh;}
+  header{padding:11px 20px 8px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:20px;font-weight:700;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:8px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:14px;font-weight:600;color:var(--navy);min-height:38px;display:flex;align-items:center;}
+  #cap .beat{display:inline-block;background:var(--navy);color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:9px;}
+  #main{flex:1;min-height:0;display:flex;}
+  #left{flex:1;min-width:0;position:relative;}
+  canvas{display:block;width:100%;height:100%;}
+  #side{width:270px;border-left:1px solid var(--line);background:#fff;padding:14px;display:flex;flex-direction:column;gap:11px;overflow:auto;}
+  .card{background:var(--bg);border-radius:10px;padding:9px 11px;border-left:4px solid var(--steel);}
+  .card.d{border-color:var(--terra);} .card.r{border-color:var(--steel);} .card.k{border-color:var(--teal);}
+  .card .lab{font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--mut);text-transform:uppercase;}
+  .card .val{font-family:Cambria,serif;font-size:18px;font-weight:700;color:var(--navy);margin-top:1px;}
+  .card .map{font-size:11.5px;color:var(--mut);margin-top:1px;}
+  .bar{height:8px;background:var(--line);border-radius:5px;margin-top:5px;overflow:hidden;}
+  .bar > i{display:block;height:100%;width:0;border-radius:5px;}
+  .ctl{display:flex;flex-direction:column;gap:2px;}
+  .ctl .top{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--navy);}
+  .ctl .top span{color:var(--mut);font-weight:600;font-family:Cambria,serif;}
+  input[type=range]{width:100%;}
+  .btns{display:flex;gap:6px;flex-wrap:wrap;}
+  button{font-family:inherit;font-size:13px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:7px 12px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  button.pri{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .hint{font-size:11px;color:var(--mut);font-style:italic;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>The interatomic potential well &mdash; U(r)</h1>
+    <p>Morse potential &middot; three independent knobs, three material properties &middot; ENGR 170</p>
+  </header>
+  <div id="cap"></div>
+  <div id="main">
+    <div id="left"><canvas id="cv"></canvas></div>
+    <div id="side">
+      <div class="btns">
+        <button class="pri" id="play">▶ Play</button>
+        <button id="step">⏭ Step</button>
+        <button id="reset">↺ Reset</button>
+      </div>
+      <div class="hint">Or drag a slider to explore one knob at a time.</div>
+      <div class="ctl"><div class="top"><label>Well depth D</label><span id="dO">4.60 eV</span></div><input id="dS" type="range" min="1.0" max="7.0" step="0.05" value="4.6"></div>
+      <div class="ctl"><div class="top"><label>Equilibrium sep. r₀</label><span id="rO">0.280 nm</span></div><input id="rS" type="range" min="0.22" max="0.40" step="0.002" value="0.28"></div>
+      <div class="ctl"><div class="top"><label>Width a (curvature)</label><span id="aO">18.0 /nm</span></div><input id="aS" type="range" min="8" max="30" step="0.2" value="18"></div>
+      <div class="card d"><div class="lab">Well depth D (bond energy)</div><div class="val" id="vD">4.60 eV</div><div class="map">well bottom at E₀ = −D → melting T</div><div class="bar"><i id="bD" style="background:var(--terra)"></i></div></div>
+      <div class="card r"><div class="lab">Equilibrium separation <span style="text-transform:none">r₀</span></div><div class="val" id="vR">0.280 nm</div><div class="map">→ effective atomic size</div></div>
+      <div class="card k"><div class="lab">Curvature <span style="text-transform:none;font-weight:700">U″(r₀) = 2·D·a²</span></div><div class="val" id="vK">2981 eV/nm²</div><div class="map">→ elastic modulus E (stiffness)</div><div class="bar"><i id="bK" style="background:var(--teal)"></i></div></div>
+    </div>
+  </div>
+</div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let D=4.6, r0=0.28, a=18.0;
+const R_MIN=0.20, R_MAX=0.66, U_TOP=2.0;
+function UB(){return Math.min(-5.4, -(D+0.55));}  // auto-extend axis so a deep well stays on screen
+// Morse potential and exact derivatives
+function U(r){const e=Math.exp(-a*(r-r0)); const b=1-e; return D*b*b - D;}
+function Upp(r){const e=Math.exp(-a*(r-r0)); return 2*D*a*a*e*(2*e-1);}   // exact second derivative
+function UppMin(){return 2*D*a*a;}                                        // = U''(r0), exact
+// ranges for readout bars (relative)
+const D_MAX=7.0, K_MAX=2*7.0*30*30;
+// state
+let beat=0, playing=false, explore=false, clk=0, markerR=r0, aAuto=18, last=performance.now();
+const CAP={
+ 0:["", "Drag a slider, or press Play to walk through the three beats."],
+ 1:["BEAT 1","Atoms settle at r₀, where net energy is lowest."],
+ 2:["BEAT 2","Depth = bond energy → melting T.  Position = equilibrium separation r₀."],
+ 3:["BEAT 3","Same bond length, same bond energy — a sharper well is a stiffer bond → larger E."]
+};
+function setCap(){const c=document.getElementById('cap');const [b,txt]=CAP[beat];
+  c.innerHTML=(b?'<span class="beat">'+b+'</span>':'')+txt;}
+// layout
+let W,Hc,PL,PR,PT,PB;
+function resize(){const r=cv.getBoundingClientRect();cv.width=r.width*devicePixelRatio;cv.height=r.height*devicePixelRatio;
+  W=cv.width;Hc=cv.height;PL=72*devicePixelRatio;PR=W-210*devicePixelRatio;PT=64*devicePixelRatio;PB=Hc-54*devicePixelRatio;}
+window.addEventListener('resize',resize);
+function X(r){return PL+(r-R_MIN)/(R_MAX-R_MIN)*(PR-PL);}
+function Yv(u){return PT+(U_TOP-u)/(U_TOP-UB())*(PB-PT);}
+const dpr=()=>devicePixelRatio;
+function line(a1,b1,a2,b2,col,w,dash){ctx.beginPath();ctx.setLineDash(dash||[]);ctx.moveTo(a1,b1);ctx.lineTo(a2,b2);ctx.strokeStyle=col;ctx.lineWidth=w*dpr();ctx.stroke();ctx.setLineDash([]);}
+function text(s,x,y,col,sz,al,bold,serif){ctx.fillStyle=col;ctx.font=(bold?'bold ':'')+(sz*dpr())+'px '+(serif?'Cambria,Georgia,serif':'Calibri,sans-serif');ctx.textAlign=al||'left';ctx.textBaseline='middle';ctx.fillText(s,x,y);}
+
+function draw(){
+  ctx.clearRect(0,0,W,Hc);
+  // axes
+  line(PL,PT-10*dpr(),PL,PB,"#8A93A0",1.2); line(PL,PB,PR+8*dpr(),PB,"#8A93A0",1.2);
+  // zero energy line
+  const y0=Yv(0); line(PL,y0,PR,y0,"#C7CFDA",1,[5,4]); text("U = 0  ·  two free atoms, far apart",PL+10*dpr(),y0-9*dpr(),"#8A93A0",10.5,'left');
+  text("U(r) = potential energy of two atoms vs their separation r",PL,18*dpr(),"#6B7480",10.5,'left',true);
+  // axis ticks/labels
+  for(let u=0;u>=Math.ceil(UB());u--){const y=Yv(u); text(u.toString(),PL-8*dpr(),y,"#8A93A0",10,'right');}
+  text("U (eV)",PL-8*dpr(),PT-24*dpr(),"#3F4A5A",11,'left',true);
+  for(let r=0.25;r<=0.65;r+=0.10){const x=X(r); line(x,PB,x,PB+5*dpr(),"#8A93A0",1); text(r.toFixed(2),x,PB+16*dpr(),"#8A93A0",10,'center');}
+  text("r (nm)",PR-4*dpr(),PB+34*dpr(),"#3F4A5A",11,'right',true);
+  text("distance between atom centers",PR-4*dpr(),PB+47*dpr(),"#8A93A0",9.5,'right');
+  // curve
+  ctx.beginPath();let started=false;
+  for(let px=PL;px<=PR;px+=1){const r=R_MIN+(px-PL)/(PR-PL)*(R_MAX-R_MIN);let u=U(r);if(u>U_TOP)u=U_TOP+ (u>U_TOP?0:0);
+    const y=Yv(Math.min(u,U_TOP)); if(u>U_TOP+0.001){started=false;continue;} if(!started){ctx.moveTo(px,y);started=true;}else ctx.lineTo(px,y);}
+  ctx.strokeStyle="#2E5496";ctx.lineWidth=3*dpr();ctx.lineJoin='round';ctx.stroke();
+  // beat-2 overlays
+  if(beat>=2 || explore){
+    const xr=X(r0), ymin=Yv(-D);
+    line(xr,PT-6*dpr(),xr,ymin,"#1F3864",1.4,[6,4]);
+    text("equilibrium separation r₀",xr,PT-20*dpr(),"#1F3864",11,'center',true);
+    text("(effective atomic size)",xr,PT-6*dpr(),"#6B7480",9.5,'center');
+    // depth bracket at left
+    const xb=X(R_MIN+0.02);
+    line(xb,y0,xb,ymin,"#B85042",2); line(xb-5*dpr(),y0,xb+5*dpr(),y0,"#B85042",2); line(xb-5*dpr(),ymin,xb+5*dpr(),ymin,"#B85042",2);
+    text("well depth D",xb+9*dpr(),(y0+ymin)/2-8*dpr(),"#B85042",10.5,'left',true);
+    text("= bond energy",xb+9*dpr(),(y0+ymin)/2+7*dpr(),"#B85042",10,'left');
+    text("→ melting T",xb+9*dpr(),(y0+ymin)/2+22*dpr(),"#6B7480",9.5,'left');
+    text("E₀ = −D",xr+8*dpr(),ymin+2*dpr(),"#1F3864",10.5,'left',true);
+    // thermometer (right panel)
+    therm();
+  }
+  if(beat>=3 || explore) spring();
+  // atoms + marker
+  drawAtomsMarker();
+  updateReadouts();
+}
+function therm(){
+  const cx=PR+55*dpr(), top=PT+8*dpr(), bot=PB-70*dpr(), w=13*dpr();
+  ctx.strokeStyle="#8A93A0";ctx.lineWidth=1.5*dpr();
+  ctx.beginPath();ctx.roundRect(cx-w/2,top,w,bot-top,w/2);ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,bot+10*dpr(),11*dpr(),0,7);ctx.fillStyle="#B85042";ctx.fill();
+  const f=Math.min(1,D/D_MAX); const fh=(bot-top)*f;
+  ctx.fillStyle="#B85042";ctx.beginPath();ctx.roundRect(cx-w/2+2*dpr(),bot-fh,w-4*dpr(),fh,w/2);ctx.fill();
+  text("T_m ∝ D",cx,top-14*dpr(),"#B85042",10.5,'center',true);
+}
+function spring(){
+  const cx=PR+150*dpr(), top=PT+20*dpr(), restH=(PB-PT)*0.5;
+  const k=UppMin(); const kRef=2*4.6*18*18; const comp=Math.min(restH*0.86, restH*0.42*(kRef/k)); // constant force F → x=F/k
+  const H=restH-comp;
+  // fixed ceiling
+  line(cx-26*dpr(),top,cx+26*dpr(),top,"#8A93A0",3);
+  // spring coils
+  const coils=7, seg=H/coils; ctx.beginPath();ctx.moveTo(cx,top);
+  for(let i=0;i<coils;i++){const y=top+seg*(i+0.5);const dx=(i%2?1:-1)*18*dpr();ctx.lineTo(cx+dx,y);} ctx.lineTo(cx,top+H);
+  ctx.strokeStyle="#1F7A63";ctx.lineWidth=2.6*dpr();ctx.lineJoin='round';ctx.stroke();
+  // platform
+  line(cx-28*dpr(),top+H,cx+28*dpr(),top+H,"#3F4A5A",4);
+  // constant force arrow (same every time)
+  const ay=top+H+10*dpr();
+  ctx.strokeStyle="#E8890C";ctx.lineWidth=3*dpr();ctx.beginPath();ctx.moveTo(cx,ay);ctx.lineTo(cx,ay+34*dpr());ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-6*dpr(),ay+26*dpr());ctx.lineTo(cx,ay+36*dpr());ctx.lineTo(cx+6*dpr(),ay+26*dpr());ctx.closePath();ctx.fillStyle="#E8890C";ctx.fill();
+  text("constant F",cx,ay+50*dpr(),"#E8890C",10,'center',true);
+  text("stiffer → less",cx,top-26*dpr(),"#1F7A63",10,'center',true);
+  text("compression",cx,top-13*dpr(),"#1F7A63",10,'center');
+}
+function drawAtomsMarker(){
+  const r = (beat===1&&!explore)? markerR : r0;
+  // marker on curve
+  const mx=X(r), my=Yv(Math.min(U(r),U_TOP));
+  // atoms strip centered at plot center
+  const xC=(PL+PR)/2, ys=PT-42*dpr(), rad=14*dpr(), sep=r*100*dpr();
+  line(xC,ys,mx,my,"#B85042",1.2,[4,3]);
+  for(const sgn of [-1,1]){const ax=xC+sgn*sep/2;
+    ctx.beginPath();ctx.arc(ax,ys,rad,0,7);ctx.fillStyle="#F2B705";ctx.strokeStyle="#6B4E00";ctx.lineWidth=1.4*dpr();ctx.fill();ctx.stroke();}
+  ctx.beginPath();ctx.arc(mx,my,7*dpr(),0,7);ctx.fillStyle="#B85042";ctx.strokeStyle="#7A2E24";ctx.lineWidth=1.5*dpr();ctx.fill();ctx.stroke();
+}
+function updateReadouts(){
+  document.getElementById('dO').textContent=D.toFixed(2)+" eV";
+  document.getElementById('rO').textContent=r0.toFixed(3)+" nm";
+  document.getElementById('aO').textContent=a.toFixed(1)+" /nm";
+  document.getElementById('dS').value=D; document.getElementById('rS').value=r0; document.getElementById('aS').value=a;
+  document.getElementById('vD').textContent=D.toFixed(2)+" eV";
+  document.getElementById('vR').textContent=r0.toFixed(3)+" nm";
+  const k=UppMin(); document.getElementById('vK').textContent=Math.round(k).toLocaleString()+" eV/nm²";
+  document.getElementById('bD').style.width=(Math.min(1,D/D_MAX)*100)+"%";
+  document.getElementById('bK').style.width=(Math.min(1,k/K_MAX)*100)+"%";
+}
+// ---- interaction ----
+document.getElementById('dS').addEventListener('input',e=>{explore=true;playing=false;beat=Math.max(beat,0);D=+e.target.value;setCap();});
+document.getElementById('rS').addEventListener('input',e=>{explore=true;playing=false;r0=+e.target.value;setCap();});
+document.getElementById('aS').addEventListener('input',e=>{explore=true;playing=false;a=+e.target.value;setCap();});
+document.getElementById('play').onclick=()=>{explore=false;playing=true;beat=1;clk=0;D=4.6;r0=0.28;a=18;markerR=0.235;setCap();};
+document.getElementById('step').onclick=()=>{explore=false;playing=false;beat=Math.min(3,beat+1);clk=0;if(beat===1){D=4.6;r0=0.28;a=18;markerR=0.235;}setCap();};
+document.getElementById('reset').onclick=()=>{explore=false;playing=false;beat=0;clk=0;D=4.6;r0=0.28;a=18;markerR=r0;setCap();};
+// ---- animation ----
+function tick(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(!explore){
+    if(beat===1){clk+=dt; const A=(0.235-0.28); markerR=0.28+A*Math.exp(-3.2*clk)*Math.cos(7*clk);
+      if(clk>2.6){markerR=0.28; if(playing){beat=2;clk=0;setCap();}}}
+    else if(beat===2){clk+=dt; if(clk>2.4&&playing){beat=3;clk=0;setCap();}}
+    else if(beat===3){clk+=dt; aAuto=19+9*Math.sin(clk*1.4); a=aAuto;}
+  }
+  draw(); requestAnimationFrame(tick);
+}
+resize(); setCap(); requestAnimationFrame(tick);
+</script>
+</body>
+</html>

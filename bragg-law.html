@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Bragg's Law — where 2d·sinθ comes from</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--gold:#F2B705;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  #app{display:flex;flex-direction:column;height:100vh;}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:20px;font-weight:700;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  .bar{display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center;padding:9px 18px;background:#fff;border-bottom:1px solid var(--line);}
+  .ctl{display:flex;align-items:center;gap:8px;}
+  .ctl label{font-size:12px;font-weight:700;color:var(--mut);min-width:14px;}
+  .ctl output{font-size:13px;font-weight:700;color:var(--navy);min-width:52px;font-family:Cambria,serif;}
+  input[type=range]{width:120px;}
+  .step{display:flex;gap:6px;align-items:center;margin-left:auto;}
+  button{font-family:inherit;font-size:13px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);
+    padding:6px 12px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  button:disabled{opacity:.4;cursor:default;}
+  #stage{position:relative;flex:1;min-height:0;display:flex;}
+  #main{flex:1;min-width:0;position:relative;}
+  canvas{display:block;width:100%;height:100%;}
+  #side{width:250px;border-left:1px solid var(--line);background:#fff;padding:14px;display:flex;flex-direction:column;gap:12px;}
+  .card{background:var(--bg);border-radius:10px;padding:10px 12px;}
+  .card .lab{font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--mut);text-transform:uppercase;}
+  .card .big{font-family:Cambria,serif;font-size:19px;font-weight:700;color:var(--navy);margin-top:2px;}
+  #status{border-radius:10px;padding:10px 12px;font-weight:700;font-size:14px;text-align:center;}
+  #imeter{height:14px;background:var(--line);border-radius:7px;overflow:hidden;margin-top:6px;}
+  #ifill{height:100%;width:0;background:var(--terra);transition:width .05s;}
+  #curve{width:100%;height:96px;background:var(--bg);border-radius:10px;}
+  #narr{position:absolute;left:14px;bottom:12px;right:14px;background:rgba(255,255,255,.94);border:1px solid var(--line);
+    border-radius:10px;padding:9px 13px;font-size:13px;line-height:1.45;color:var(--ink);box-shadow:0 2px 10px rgba(31,56,100,.10);}
+  #narr b{color:var(--navy);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Bragg's law — where 2d·sinθ actually comes from</h1>
+    <p>Drag θ and watch the two reflected rays drift in and out of phase · ENGR 170</p>
+  </header>
+  <div class="bar">
+    <div class="ctl"><label>θ</label><input id="th" type="range" min="8" max="70" value="26" step="0.5"/><output id="tho">26°</output></div>
+    <div class="ctl"><label>d</label><input id="d" type="range" min="0.8" max="2.0" value="1.4" step="0.05"/><output id="do">1.40</output></div>
+    <div class="ctl"><label>λ</label><input id="lam" type="range" min="0.4" max="1.2" value="0.75" step="0.05"/><output id="lamo">0.75</output></div>
+    <div class="step">
+      <button id="prev" onclick="step(-1)">‹ Prev</button>
+      <span id="stepn" style="font-size:12px;color:var(--mut);min-width:74px;text-align:center;">step 1 / 6</span>
+      <button id="next" onclick="step(1)">Next ›</button>
+    </div>
+  </div>
+  <div id="stage">
+    <div id="main"><canvas id="cv"></canvas>
+      <div id="narr"></div>
+    </div>
+    <div id="side">
+      <div class="card"><div class="lab">Path difference</div><div class="big" id="delta">Δ = 2d·sinθ</div></div>
+      <div class="card"><div class="lab">In wavelengths</div><div class="big" id="ratio">— λ</div></div>
+      <div id="status">—</div>
+      <div><div class="lab" style="font-size:11px;font-weight:700;color:var(--mut);">Reflected intensity  I = cos²(πΔ/λ)</div><div id="imeter"><div id="ifill"></div></div></div>
+      <div><div class="lab" style="font-size:11px;font-weight:700;color:var(--mut);">Intensity vs θ (Bragg peaks)</div><canvas id="curve"></canvas></div>
+    </div>
+  </div>
+</div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const cu=document.getElementById('curve'),cc=cu.getContext('2d');
+let th=26*Math.PI/180, d=1.4, lam=0.75, stp=1, t=0;
+const NARR=[
+ "<b>1 · Two rays arrive in phase.</b> Same wavelength, crests aligned along the shared <b style='color:#1F7A63'>wavefront</b>. They come in at glancing angle θ.",
+ "<b>2 · They scatter off adjacent planes,</b> spacing d. The top ray reflects off the top plane; the bottom ray continues, hits the next plane, and reflects.",
+ "<b>3 · Left of P and right of Q, both rays travel together</b> — identical path. The <i>only</i> difference is trapped between the two perpendiculars.",
+ "<b>4 · Each trapped segment = d·sinθ.</b> In the little right triangle, d is opposite θ, so the leg is d·sinθ. There are two — one going in, one coming out.",
+ "<b>5 · Add them: Δ = 2d·sinθ.</b> That is the entire extra distance the lower ray travels.",
+ "<b>6 · Now sweep θ.</b> The reflected waves drift out of phase and back; they snap bright exactly when <b>2d·sinθ = nλ</b>. That alignment is a <b style='color:#B85042'>Bragg peak</b>."
+];
+function resize(){const r=cv.getBoundingClientRect();cv.width=r.width*devicePixelRatio;cv.height=r.height*devicePixelRatio;
+  const c=cu.getBoundingClientRect();cu.width=c.width*devicePixelRatio;cu.height=c.height*devicePixelRatio;}
+window.addEventListener('resize',resize);
+function geom(){const u=[Math.cos(th),-Math.sin(th)],v=[Math.cos(th),Math.sin(th)];
+  const T=[0,d],B=[0,0],ds=d*Math.sin(th);
+  const P=[B[0]-ds*u[0],B[1]-ds*u[1]],Q=[B[0]+ds*v[0],B[1]+ds*v[1]];
+  return{u,v,T,B,P,Q,ds};}
+function draw(){
+  const w=cv.width,h=cv.height,S=Math.min(w/6.6,h/4.3),ox=w*0.40,oy=h*0.66;
+  const X=dx=>ox+dx*S, Y=dy=>oy-dy*S;
+  ctx.clearRect(0,0,w,h);
+  const g=geom(),{u,v,T,B,P,Q,ds}=g, Lin=2.7;
+  const line=(a,b,col,lw,dash)=>{ctx.beginPath();ctx.setLineDash(dash||[]);ctx.moveTo(X(a[0]),Y(a[1]));ctx.lineTo(X(b[0]),Y(b[1]));ctx.strokeStyle=col;ctx.lineWidth=lw*devicePixelRatio;ctx.lineCap='round';ctx.stroke();ctx.setLineDash([]);};
+  const dot=(a,r,col)=>{ctx.beginPath();ctx.arc(X(a[0]),Y(a[1]),r*devicePixelRatio,0,7);ctx.fillStyle=col;ctx.fill();};
+  const txt=(s,a,col,sz,al)=>{ctx.fillStyle=col;ctx.font=(sz*devicePixelRatio)+"px Cambria, Georgia, serif";ctx.textAlign=al||'left';ctx.textBaseline='middle';ctx.fillText(s,X(a[0]),Y(a[1]));};
+  // planes
+  if(stp>=2){for(const yy of [0,d]){line([-3.0,yy],[3.0,yy],"#6B7480",1.3);
+    for(let xx=-2.6;xx<=2.6;xx+=0.6){dot([xx,yy],3.2,"#9AA3AD");}}
+    txt("atomic planes",[1.7,-0.32],"#6B7480",12,'center');}
+  // incident rays
+  line([T[0]-Lin*u[0],T[1]-Lin*u[1]],T,"#2E5496",2.4);
+  line([B[0]-Lin*u[0],B[1]-Lin*u[1]],B,"#2E5496",2.4);
+  // outgoing
+  if(stp>=2){line(T,[T[0]+Lin*v[0],T[1]+Lin*v[1]],"#2E5496",2.4);
+    line(B,[B[0]+Lin*v[0],B[1]+Lin*v[1]],"#2E5496",2.4);
+    dot(T,5,"#1F3864");dot(B,5,"#1F3864");}
+  // wavefronts (in phase)
+  line(T,P,"#1F7A63",2.2);
+  if(stp>=3){line(T,Q,"#1F7A63",2.2);
+    dot(P,3.6,"#21262E");dot(Q,3.6,"#21262E");
+    txt("P",[P[0]-0.16,P[1]+0.02],"#21262E",13,'right');txt("Q",[Q[0]+0.16,Q[1]+0.02],"#21262E",13,'left');
+    txt("wavefront",[ (T[0]+P[0])/2-0.15,(T[1]+P[1])/2+0.28],"#1F7A63",11,'right');}
+  // segments d sinθ
+  if(stp>=4){line(P,B,"#E8890C",4.2);line(B,Q,"#E8890C",4.2);
+    line([0,0],[0,d],"#1F3864",1.6,[5,3]);txt("d",[0.12,d/2],"#1F3864",15,'left');
+    txt("d·sinθ",[P[0]-0.16,P[1]+0.05],"#B85042",12,'right');txt("d·sinθ",[Q[0]+0.16,Q[1]+0.05],"#B85042",12,'left');
+    // theta arc
+    ctx.beginPath();ctx.arc(X(0),Y(0),0.5*S,Math.PI,Math.PI-th,true);ctx.strokeStyle="#21262E";ctx.lineWidth=1.4*devicePixelRatio;ctx.stroke();
+    txt("θ",[-0.62,0.17],"#21262E",13,'center');}
+  // delta callout
+  if(stp>=5){const val=2*d*Math.sin(th);
+    ctx.fillStyle="rgba(250,238,205,0.95)";ctx.strokeStyle="#E8890C";ctx.lineWidth=1.4*devicePixelRatio;
+    const bx=X(0)-95*devicePixelRatio,by=Y(3.02)-16*devicePixelRatio;
+    roundRect(ctx,bx,by,190*devicePixelRatio,32*devicePixelRatio,7*devicePixelRatio);ctx.fill();ctx.stroke();
+    ctx.fillStyle="#1F3864";ctx.font="bold "+(13*devicePixelRatio)+"px Cambria, serif";ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText("Δ = 2d·sinθ = "+val.toFixed(2),X(0),Y(3.02));}
+  // waves on outgoing rays (step 6)
+  if(stp>=6){
+    const k=2*Math.PI/lam, amp=0.16, Lw=2.5, delta=2*d*Math.sin(th);
+    const pdir=[-v[1],v[0]];
+    drawWave(ctx,X,Y,T,v,pdir,k,amp,Lw,-t,"#2E5496",devicePixelRatio);
+    drawWave(ctx,X,Y,Q,v,pdir,k,amp,Lw,-t-k*delta,"#B85042",devicePixelRatio);
+  }
+  drawCurve();
+  updateReadout();
+}
+function drawWave(ctx,X,Y,S,v,pd,k,amp,L,ph,col,dp){
+  ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=2.0*dp;
+  for(let s=0;s<=L;s+=0.03){const off=amp*Math.sin(k*s+ph);
+    const px=S[0]+s*v[0]+off*pd[0], py=S[1]+s*v[1]+off*pd[1];
+    if(s===0)ctx.moveTo(X(px),Y(py));else ctx.lineTo(X(px),Y(py));}
+  ctx.stroke();
+}
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function drawCurve(){
+  const w=cu.width,h=cu.height;cc.clearRect(0,0,w,h);
+  const t0=8*Math.PI/180,t1=70*Math.PI/180;
+  cc.beginPath();
+  for(let i=0;i<=200;i++){const a=t0+(t1-t0)*i/200;const I=Math.pow(Math.cos(Math.PI*2*d*Math.sin(a)/lam),2);
+    const x=i/200*w, y=h-6*devicePixelRatio-I*(h-12*devicePixelRatio);
+    if(i===0)cc.moveTo(x,y);else cc.lineTo(x,y);}
+  cc.strokeStyle="#2E5496";cc.lineWidth=1.6*devicePixelRatio;cc.stroke();
+  const cx=(th-t0)/(t1-t0)*w;
+  cc.beginPath();cc.moveTo(cx,0);cc.lineTo(cx,h);cc.strokeStyle="#B85042";cc.lineWidth=1.4*devicePixelRatio;cc.stroke();
+}
+function updateReadout(){
+  const val=2*d*Math.sin(th), ratio=val/lam, I=Math.pow(Math.cos(Math.PI*ratio),2), nr=Math.round(ratio);
+  document.getElementById('delta').textContent="Δ = "+val.toFixed(2);
+  document.getElementById('ratio').textContent=ratio.toFixed(2)+" λ";
+  document.getElementById('ifill').style.width=(I*100).toFixed(0)+"%";
+  const near=Math.abs(ratio-nr)<0.04 && nr>=1;
+  const st=document.getElementById('status');
+  if(near){st.textContent="Bragg peak — n = "+nr;st.style.background="#FBE7E2";st.style.color="#B85042";
+    document.getElementById('ifill').style.background="#1F7A63";}
+  else{st.textContent="off-Bragg — waves cancel";st.style.background="var(--bg)";st.style.color="var(--mut)";
+    document.getElementById('ifill').style.background="#B85042";}
+  document.getElementById('narr').innerHTML=NARR[stp-1];
+  document.getElementById('stepn').textContent="step "+stp+" / 6";
+  document.getElementById('prev').disabled=stp<=1;document.getElementById('next').disabled=stp>=6;
+}
+function step(dir){stp=Math.max(1,Math.min(6,stp+dir));}
+document.getElementById('th').addEventListener('input',e=>{th=e.target.value*Math.PI/180;document.getElementById('tho').textContent=(+e.target.value).toFixed(1)+"°";if(stp<6)stp=6;});
+document.getElementById('d').addEventListener('input',e=>{d=+e.target.value;document.getElementById('do').textContent=d.toFixed(2);});
+document.getElementById('lam').addEventListener('input',e=>{lam=+e.target.value;document.getElementById('lamo').textContent=lam.toFixed(2);});
+function loop(){t+=0.09;draw();requestAnimationFrame(loop);}
+resize();updateReadout();loop();
+</script>
+</body>
+</html>

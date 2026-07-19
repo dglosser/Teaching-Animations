@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Same shear, opposite outcomes — ionic vs metallic vs covalent</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--gold:#F2B705;--red:#D8322B;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  #app{display:flex;flex-direction:column;height:100vh;}
+  header{padding:11px 20px 8px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;font-weight:700;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #bar{display:flex;gap:10px;align-items:center;padding:9px 18px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  button{font-family:inherit;font-size:14px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:8px 15px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  button.pri{background:var(--navy);color:#fff;border-color:var(--navy);}
+  #stage{display:flex;align-items:center;margin-left:auto;font-size:13.5px;font-weight:700;color:var(--navy);}
+  #stage .tag{background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:4px 10px;margin-left:8px;}
+  #cvwrap{flex:1;min-height:0;position:relative;}
+  canvas{display:block;width:100%;height:100%;}
+  .hint{font-size:12px;color:var(--mut);font-style:italic;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Same shear, opposite outcomes</h1>
+    <p>One displacement applied to three lattices &middot; why ionic &amp; covalent are brittle but metals are ductile &middot; ENGR 170</p>
+  </header>
+  <div id="bar">
+    <button class="pri" id="apply">▶ Apply shear</button>
+    <button id="step">⏭ Step</button>
+    <button id="reset">↺ Reset</button>
+    <span class="hint">same input → divergent outcome</span>
+    <span id="stage">Stage:<span class="tag" id="stageT">resting lattice</span></span>
+  </div>
+  <div id="cvwrap"><canvas id="cv"></canvas></div>
+</div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const C={pos:"#2E5496",neg:"#E8890C",core:"#1F3864",elec:"#1F7A63",cov:"#5A6472",bond:"#3F4A5A",
+  red:"#D8322B",ink:"#21262E",mut:"#6B7480",navy:"#1F3864",line:"#C7CFDA"};
+const NX=5, NY=4;           // grid; rows 0-1 = top block, rows 2-3 = bottom block
+let sCur=0, sTarget=0;      // shear (0..1 lattice spacings)
+let stepIdx=0; const STOPS=[0,0.5,0.9,1.0];
+let elec=[];                // electron sea
+let W,Hc,dpr;
+function resize(){dpr=Math.min(devicePixelRatio,2);cv.width=cv.clientWidth*dpr;cv.height=cv.clientHeight*dpr;W=cv.width;Hc=cv.height;initElec();}
+window.addEventListener('resize',resize);
+function panels(){const pw=W/3; return [{x:0,w:pw},{x:pw,w:pw},{x:2*pw,w:pw}];}
+function initElec(){elec=[];const p=panels()[1];const n=46;
+  for(let i=0;i<n;i++)elec.push({x:p.x+40*dpr+Math.random()*(p.w-80*dpr),y:120*dpr+Math.random()*(Hc-230*dpr),vx:(Math.random()-.5)*0.5*dpr,vy:(Math.random()-.5)*0.5*dpr});}
+// geometry: atom position for grid (i,j) with current shear + separation gap
+function geo(pl){const sp=Math.min(pl.w*0.15, (Hc-240*dpr)/5.2); const latW=(NX-1)*sp;
+  const ox=pl.x+(pl.w-latW)/2, oy=140*dpr; return {sp,ox,oy};}
+function atomXY(g,i,j,dx,gapUp){const top=(j<=1); const x=g.ox+i*g.sp+(top?dx:0); const y=g.oy+j*g.sp-(top?gapUp:0); return [x,y];}
+function circle(x,y,r,fill,stroke,lw){ctx.beginPath();ctx.arc(x,y,r,0,7);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=(lw||1.4)*dpr;ctx.stroke();}}
+function txt(s,x,y,col,sz,al,bold){ctx.fillStyle=col;ctx.font=(bold?'bold ':'')+(sz*dpr)+'px Calibri,sans-serif';ctx.textAlign=al||'center';ctx.textBaseline='middle';ctx.fillText(s,x,y);}
+function head(pl,t,col){txt(t,pl.x+pl.w/2,44*dpr,col,17,'center',true);}
+function cap(pl,lines,col){let y=Hc-70*dpr;lines.forEach((l,i)=>txt(l,pl.x+pl.w/2,y+i*17*dpr,i===0?col:C.mut,i===0?13:11.5,'center',i===0));}
+function planeLabel(pl,g){ctx.setLineDash([6*dpr,4*dpr]);ctx.beginPath();const y=g.oy+1.5*g.sp;ctx.moveTo(pl.x+18*dpr,y);ctx.lineTo(pl.x+pl.w-18*dpr,y);ctx.strokeStyle=C.line;ctx.lineWidth=1*dpr;ctx.stroke();ctx.setLineDash([]);}
+
+function drawIonic(pl){
+  const g=geo(pl); const dx=sCur*g.sp; const like=Math.max(0,(sCur-0.82)/0.18); const cleave=Math.max(0,(sCur-0.9)/0.1); const gapUp=cleave*g.sp*0.9;
+  head(pl,"IONIC  (NaCl)",C.steel);
+  planeLabel(pl,g);
+  // bonds hint: none drawn (nondirectional). draw faint attraction dots omitted.
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){
+    const charge=((i+j)%2===0)?1:-1; const [x,y]=atomXY(g,i,j,dx,gapUp);
+    const isInterface=(j===1||j===2);
+    let col=charge>0?C.pos:C.neg; let r=(charge>0?0.30:0.40)*g.sp;
+    // highlight like-charge confrontation on interface rows when sheared near 1
+    if(like>0 && isInterface){ ctx.globalAlpha=1; circle(x,y,r+5*dpr,null,C.red,2.2+like*2); }
+    circle(x,y,r,col,charge>0?"#16305c":"#7a4708",1.6);
+    txt(charge>0?"+":"–",x,y,"#fff",charge>0?13:15,'center',true);
+  }
+  // labels a couple ions
+  const g0=geo(pl); const [lx,ly]=atomXY(g0,0,3,0,0); txt("Na⁺",lx,ly+g0.sp*0.55,C.steel,11,'center',true);
+  const [cx,cy]=atomXY(g0,1,3,0,0); txt("Cl⁻",cx,cy+g0.sp*0.62,C.amber,11,'center',true);
+  // repulsion arrows + crack
+  if(like>0){
+    for(let i=0;i<NX;i++){ const [xt,yt]=atomXY(g,i,1,dx,gapUp); const [xb,yb]=atomXY(g,i,2,0,0);
+      arrow(xt,yt-6*dpr,xt,yt-6*dpr-16*dpr,C.red); arrow(xb,yb+6*dpr,xb,yb+6*dpr+16*dpr,C.red); }
+    txt("like charges meet → repel",pl.x+pl.w/2,g.oy+1.5*g.sp-cleave*20*dpr-14*dpr,C.red,12,'center',true);
+  }
+  cap(pl,["Shift → like charges meet → repel → cleaves","non-directional Coulomb bonds · BRITTLE"],C.terra);
+}
+function drawMetallic(pl){
+  const g=geo(pl); const dx=sCur*g.sp;
+  head(pl,"METALLIC",C.navy);
+  planeLabel(pl,g);
+  // electron sea (behind cores)
+  const p=pl; for(const e of elec){ circle(e.x,e.y,2.4*dpr,C.elec,null); }
+  // cores
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){ const [x,y]=atomXY(g,i,j,dx,0);
+    circle(x,y,0.32*g.sp,C.core,"#0f2247",1.6); txt("+",x,y,"#fff",13,'center',true); }
+  txt("ion cores (+) in an electron sea",pl.x+pl.w/2,g.oy-30*dpr,C.mut,11,'center');
+  cap(pl,["Shift → electron sea re-surrounds cores → deforms","non-directional, mobile sea · DUCTILE (holds)"],C.teal);
+}
+function drawCovalent(pl){
+  const g=geo(pl); const sp=g.sp; const strain=sCur; const snapped=sCur>0.5; const frac=Math.max(0,(sCur-0.5)/0.5); const gapUp=frac*sp*0.9;
+  const dx=sCur*sp;
+  head(pl,"COVALENT  (diamond / Si)",C.cov);
+  planeLabel(pl,g);
+  // bonds within blocks (horizontal + vertical) and across plane
+  ctx.lineWidth=3*dpr;
+  function bond(i1,j1,i2,j2){const t1=(j1<=1),t2=(j2<=1);const [x1,y1]=atomXY(g,i1,j1,t1?dx:0,t1?gapUp:0);const [x2,y2]=atomXY(g,i2,j2,t2?dx:0,t2?gapUp:0);
+    const cross=(t1!==t2);
+    if(cross && snapped) return; // broken
+    ctx.strokeStyle = cross ? (strain>0.32?C.red:"#8a6d3b") : C.bond;
+    ctx.lineWidth = (cross?3.4:3)*dpr;
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){ if(i<NX-1)bond(i,j,i+1,j); if(j<NY-1)bond(i,j,i,j+1); }
+  // atoms
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){ const t=(j<=1); const [x,y]=atomXY(g,i,j,t?dx:0,t?gapUp:0);
+    circle(x,y,0.30*sp,C.cov,"#3a4048",1.6); }
+  if(!snapped && strain>0.15) txt("directional bonds straining",pl.x+pl.w/2,g.oy+1.5*sp+4*dpr,C.red,12,'center',true);
+  if(snapped) txt("bonds snapped → fracture",pl.x+pl.w/2,g.oy+1.5*sp-gapUp-10*dpr,C.red,12,'center',true);
+  cap(pl,["Shift → rigid directional bonds stretch → snap","directionality (not charge) · BRITTLE"],C.cov);
+}
+function arrow(x1,y1,x2,y2,col){ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=2.4*dpr;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1);ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-7*dpr*Math.cos(a-0.5),y2-7*dpr*Math.sin(a-0.5));ctx.lineTo(x2-7*dpr*Math.cos(a+0.5),y2-7*dpr*Math.sin(a+0.5));ctx.closePath();ctx.fill();}
+
+function stageText(){ if(sCur<0.04)return "resting lattice";
+  if(sCur<0.55)return "shearing — same displacement on all three";
+  if(sCur<0.95)return "covalent bonds snap · ionic like-charges meet";
+  return "IONIC cleaves · COVALENT snaps · METALLIC holds"; }
+
+function draw(){
+  ctx.clearRect(0,0,W,Hc);
+  const P=panels();
+  // dividers
+  for(const x of [P[1].x,P[2].x]){ctx.strokeStyle=C.line;ctx.lineWidth=1*dpr;ctx.beginPath();ctx.moveTo(x,70*dpr);ctx.lineTo(x,Hc-90*dpr);ctx.stroke();}
+  drawIonic(P[0]); drawMetallic(P[1]); drawCovalent(P[2]);
+  document.getElementById('stageT').textContent=stageText();
+}
+function tick(){
+  // shear easing toward target
+  sCur += (sTarget-sCur)*0.06; if(Math.abs(sTarget-sCur)<0.001)sCur=sTarget;
+  // electron drift (metallic)
+  const p=panels()[1];
+  for(const e of elec){e.x+=e.vx;e.y+=e.vy;
+    if(e.x<p.x+22*dpr||e.x>p.x+p.w-22*dpr)e.vx*=-1;
+    if(e.y<110*dpr||e.y>Hc-120*dpr)e.vy*=-1;
+    if(Math.random()<0.02){e.vx=(Math.random()-.5)*0.5*dpr;e.vy=(Math.random()-.5)*0.5*dpr;}}
+  draw(); requestAnimationFrame(tick);
+}
+document.getElementById('apply').onclick=()=>{sTarget=1;stepIdx=STOPS.length-1;};
+document.getElementById('reset').onclick=()=>{sTarget=0;stepIdx=0;};
+document.getElementById('step').onclick=()=>{stepIdx=Math.min(STOPS.length-1,stepIdx+1);sTarget=STOPS[stepIdx];};
+resize(); requestAnimationFrame(tick);
+</script>
+</body>
+</html>
