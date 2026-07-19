@@ -1,0 +1,1780 @@
+<!DOCTYPE htm<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interactive Materials Science · Deborah Glosser</title>
+<meta name="description" content="Browser-based animations that make the quantitative foundations of materials science visible and manipulable.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1a2233; --navy:#1F3864; --teal:#1a7a62; --terra:#b1493c; --amber:#b0740c;
+    --bg:#eef1f6; --panel:#ffffff; --line:#d7dee8; --mut:#5f6a7a;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans);
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--navy)}
+  .wrap{max-width:1060px; margin:0 auto; padding:0 24px}
+
+  /* ---- hero ---- */
+  .hero{
+    position:relative; overflow:hidden;
+    padding:96px 0 64px;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(31,56,100,.14) 1px, transparent 0) 0 0/26px 26px,
+      linear-gradient(180deg,#f6f8fb 0%,var(--bg) 100%);
+    border-bottom:1px solid var(--line);
+  }
+  .hero .wrap{position:relative}
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--teal); margin:0 0 18px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:500; font-size:clamp(34px,5.4vw,58px);
+    line-height:1.04; letter-spacing:-.01em; margin:0 0 20px; color:var(--navy); max-width:15ch;
+  }
+  .lede{font-size:clamp(16px,2vw,19px); color:var(--ink); max-width:60ch; margin:0 0 22px}
+  .byline{font-family:var(--mono); font-size:13px; color:var(--mut); letter-spacing:.02em}
+  .byline a{color:var(--mut); text-decoration:underline; text-underline-offset:3px}
+
+  /* ---- section ---- */
+  section{padding:64px 0 8px}
+  .sec-head{display:flex; align-items:baseline; gap:16px; margin-bottom:8px}
+  .sec-tag{
+    font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+    padding:4px 9px; border-radius:5px; white-space:nowrap;
+  }
+  .t-bond{color:var(--terra); background:rgba(177,73,60,.09)}
+  .t-cryst{color:var(--navy); background:rgba(31,56,100,.09)}
+  h2{
+    font-family:var(--serif); font-weight:500; font-size:clamp(22px,3vw,30px);
+    line-height:1.15; margin:0; color:var(--ink); letter-spacing:-.01em;
+  }
+  .sec-rule{height:1px; background:var(--line); margin:22px 0 34px}
+
+  /* ---- cards ---- */
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    overflow:hidden; margin-bottom:34px; box-shadow:0 1px 2px rgba(26,34,51,.03);
+  }
+  .card-head{padding:22px 24px 18px; border-bottom:1px solid var(--line)}
+  .card-top{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:10px}
+  .num{font-family:var(--mono); font-size:13px; color:var(--mut)}
+  .chip{
+    font-family:var(--mono); font-size:11.5px; letter-spacing:.04em;
+    padding:3px 8px; border-radius:20px; border:1px solid var(--line); color:var(--mut);
+  }
+  h3{font-family:var(--serif); font-weight:600; font-size:20px; margin:0 0 8px; color:var(--navy)}
+  .desc{margin:0; color:var(--ink); font-size:15.5px; max-width:72ch}
+  .frame{position:relative; background:#fafbfd}
+  iframe{display:block; width:100%; height:580px; border:0}
+  .card-foot{
+    display:flex; justify-content:flex-end; padding:12px 24px;
+    border-top:1px solid var(--line); background:#fafbfd;
+  }
+  .open{
+    font-family:var(--mono); font-size:12.5px; letter-spacing:.03em; text-decoration:none;
+    color:var(--navy); padding:6px 12px; border:1px solid var(--line); border-radius:6px;
+    transition:background .15s ease, border-color .15s ease;
+  }
+  .open:hover,.open:focus-visible{background:rgba(31,56,100,.06); border-color:var(--navy)}
+
+  a:focus-visible,.open:focus-visible{outline:2px solid var(--teal); outline-offset:2px}
+
+  /* ---- footer ---- */
+  footer{
+    margin-top:36px; padding:40px 0 64px; border-top:1px solid var(--line);
+    background:#f6f8fb;
+  }
+  .foot-grid{display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; align-items:baseline}
+  .foot-note{font-size:14px; color:var(--mut); max-width:56ch}
+  .foot-meta{font-family:var(--mono); font-size:12.5px; color:var(--mut)}
+
+  @media (max-width:640px){
+    .hero{padding:72px 0 48px}
+    iframe{height:520px}
+    section{padding:48px 0 4px}
+  }
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Materials Science &middot; ENGR 170</p>
+    <h1>Seeing the physics behind the properties</h1>
+    <p class="lede">A set of browser-based animations I built for teaching materials science. Each one takes a quantitative result &mdash; a melting point, a modulus, a diffraction condition &mdash; and makes it something you can drag, rotate, and reason through, rather than take on faith.</p>
+    <p class="byline">Deborah Glosser &middot; <a href="https://engineeringdesign.wwu.edu/people/glosser">Western Washington University</a></p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="bonding" aria-labelledby="bonding-h">
+    <div class="sec-head">
+      <span class="sec-tag t-bond">Interatomic bonding</span>
+    </div>
+    <h2 id="bonding-h">From a single potential well to a table of properties</h2>
+    <div class="sec-rule"></div>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">01</span>
+          <span class="chip">U(r) &middot; Morse potential</span>
+        </div>
+        <h3>The interatomic potential well</h3>
+        <p class="desc">Drag the well's depth, spacing, and curvature and watch one interatomic potential set three macroscopic properties at once: bond energy &rarr; melting temperature, equilibrium separation &rarr; atomic size, and curvature at the bottom &rarr; elastic modulus.</p>
+      </div>
+      <div class="frame"><iframe src="potential-well.html" loading="lazy" title="Interactive interatomic potential well U(r)"></iframe></div>
+      <div class="card-foot"><a class="open" href="potential-well.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">02</span>
+          <span class="chip">ionic &middot; covalent &middot; metallic</span>
+        </div>
+        <h3>Same shear, opposite outcomes</h3>
+        <p class="desc">Apply the same shear to ionic, covalent, and metallic bonds and get cleavage, brittle fracture, or ductile slip &mdash; a demonstration that bonding <em>character</em>, not just bond strength, decides how a material fails.</p>
+      </div>
+      <div class="frame"><iframe src="shear-outcomes.html" loading="lazy" title="Same shear applied to ionic, covalent, and metallic bonds"></iframe></div>
+      <div class="card-foot"><a class="open" href="shear-outcomes.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">03</span>
+          <span class="chip">property table, derived</span>
+        </div>
+        <h3>One bonding physics, four readouts</h3>
+        <p class="desc">A synthesis figure: melting point, stiffness, conductivity, and ductility all trace back to just two roots &mdash; the shape of the energy well and the behavior of the electrons. The property table stops being a list to memorize and becomes something derived.</p>
+      </div>
+      <div class="frame"><iframe src="property-table.html" loading="lazy" title="The property table derived from bonding physics"></iframe></div>
+      <div class="card-foot"><a class="open" href="property-table.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+  </section>
+
+  <section id="crystal" aria-labelledby="crystal-h">
+    <div class="sec-head">
+      <span class="sec-tag t-cryst">Crystal structure &amp; diffraction</span>
+    </div>
+    <h2 id="crystal-h">Lattices, the geometry within them, and how we measure them</h2>
+    <div class="sec-rule"></div>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">04</span>
+          <span class="chip">FCC &middot; BCC &middot; HCP</span>
+        </div>
+        <h3>Crystal structures of metals</h3>
+        <p class="desc">FCC, BCC, and HCP unit cells you can rotate and inflate to their touching radius, with live atom counts and atomic packing factors updating as you go.</p>
+      </div>
+      <div class="frame"><iframe src="crystal-structures.html" loading="lazy" title="FCC, BCC, and HCP crystal structures"></iframe></div>
+      <div class="card-foot"><a class="open" href="crystal-structures.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">05</span>
+          <span class="chip">a&ndash;R geometry</span>
+        </div>
+        <h3>Deriving the a&ndash;R relation</h3>
+        <p class="desc">Where <em>a</em> = 2&radic;2&thinsp;R &mdash; and its BCC and HCP cousins &mdash; actually comes from: the geometry of atoms touching along the close-packed direction, built up one step at a time instead of handed over as a formula.</p>
+      </div>
+      <div class="frame"><iframe src="a-R-relation.html" loading="lazy" title="Deriving the a-R relation for FCC, BCC, HCP"></iframe></div>
+      <div class="card-foot"><a class="open" href="a-R-relation.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">06</span>
+          <span class="chip">2d&middot;sin&theta; = n&lambda;</span>
+        </div>
+        <h3>Bragg's law, from scratch</h3>
+        <p class="desc">Where 2d&middot;sin&theta; comes from: the extra path length between rays reflecting off adjacent lattice planes, shown as the interference condition that turns a diffraction pattern into a measurement of spacing.</p>
+      </div>
+      <div class="frame"><iframe src="bragg-law.html" loading="lazy" title="Derivation of Bragg's law"></iframe></div>
+      <div class="card-foot"><a class="open" href="bragg-law.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <p class="foot-note">Built as teaching tools for ENGR 170, Introduction to Materials Science &amp; Engineering. Each animation runs entirely in the browser &mdash; no install, no plugins.</p>
+    <p class="foot-meta">Deborah Glosser &middot; WWU</p>
+  </div>
+</footer>
+
+</body>
+</html>
+l>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Deriving the a–R relation — FCC · BCC · HCP</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--gold:#F2B705;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  #app{display:flex;flex-direction:column;height:100vh;}
+  header{padding:11px 20px 8px;background:var(--navy);color:#fff;display:flex;align-items:baseline;gap:14px;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;font-weight:700;}
+  header .sub{color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:11px;min-height:42px;}
+  #cap .chip{background:var(--navy);color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:3px 9px;white-space:nowrap;}
+  #cap .txt{font-size:13.5px;color:var(--ink);}
+  #bar{display:flex;gap:9px;align-items:center;padding:9px 18px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  .seg{display:flex;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;}
+  .seg button{border:none;border-radius:0;padding:7px 15px;background:#fff;}
+  .seg button.on{background:var(--navy);color:#fff;}
+  button{font-family:inherit;font-size:13.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:7px 13px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);} button.pri{background:var(--navy);color:#fff;border-color:var(--navy);}
+  #which{margin-left:auto;font-size:12px;color:var(--mut);}
+  #cvwrap{flex:1;min-height:0;position:relative;}
+  canvas{display:block;width:100%;height:100%;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header><h1>Deriving the a–R relation</h1><span class="sub">ENGR 170 · a–R relation</span></header>
+  <div id="cap"><span class="chip" id="chip">START</span><span class="txt" id="txt"></span></div>
+  <div id="bar">
+    <span style="font-size:12px;font-weight:700;color:var(--mut)">Structure</span>
+    <div class="seg" id="seg">
+      <button data-s="fcc" class="on">FCC</button><button data-s="bcc">BCC</button><button data-s="hcp">HCP</button>
+    </div>
+    <button class="pri" id="play">▶ Play</button>
+    <button id="step">⏭ Step</button>
+    <button id="reset">↺ Reset</button>
+    <span id="which"></span>
+  </div>
+  <div id="cvwrap"><canvas id="cv"></canvas></div>
+</div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const C={navy:"#1F3864",steel:"#2E5496",terra:"#B85042",teal:"#1F7A63",amber:"#E8890C",gold:"#F2B705",
+  gedge:"#6B4E00",ink:"#21262E",mut:"#6B7480",line:"#C7CFDA",bg:"#F1F4F8",white:"#fff"};
+const SEQ={fcc:[0,1,2,5], bcc:[0,3,5], hcp:[0,4,5]};
+let structure="fcc", idx=0, beat=0, tp=0, playing=false, holdT=0, W,H,dpr;
+const CAP={
+ 0:["DEFINE","You watched the atoms touch along a diagonal — now let's measure it. a = cell edge, R = atomic radius; in FCC & BCC atoms touch along a diagonal, not the edge."],
+ 1:["FCC","Flatten the cube's front face into a square of side a, and draw its face diagonal."],
+ 2:["FCC","Three atoms fill the face diagonal: R + 2R + R = 4R. Pythagoras: diagonal = a√2. So 4R = a√2 → a = 2√2·R."],
+ 3:["BCC","Build the body diagonal from two right triangles: a and a√2 give a√3. Atoms fill it: 4R = a√3 → a = 4R/√3."],
+ 4:["HCP","Atoms touch straight along the basal edge: a = 2R. Ideal c/a = √(8/3) = 1.633 — no diagonal gymnastics."],
+ 5:["PAYOFF","a in terms of R → cell volume V_c = a³ → theoretical density ρ = nA / (V_c·N_A). The atomic radius alone gives the density."]
+};
+function resize(){dpr=Math.min(devicePixelRatio,2);cv.width=cv.clientWidth*dpr;cv.height=cv.clientHeight*dpr;W=cv.clientWidth;H=cv.clientHeight;}
+window.addEventListener('resize',resize);
+const ease=t=>t<0?0:t>1?1:t*t*(3-2*t);
+// ---- primitives (CSS-px coords; scaled by dpr via setTransform) ----
+function line(a,b,c,d,col,w,dash){ctx.beginPath();ctx.setLineDash(dash||[]);ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.stroke();ctx.setLineDash([]);}
+function atom(x,y,r,alpha){ctx.globalAlpha=alpha==null?1:alpha;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=C.gold;ctx.strokeStyle=C.gedge;ctx.lineWidth=2;ctx.fill();ctx.stroke();ctx.globalAlpha=1;}
+function T(s,x,y,col,sz,al,serif,bold){ctx.fillStyle=col;ctx.font=(bold?'bold ':'')+sz+'px '+(serif?'Cambria,Georgia,serif':'Calibri,sans-serif');ctx.textAlign=al||'center';ctx.textBaseline='middle';ctx.fillText(s,x,y);}
+function boxEq(s,cx,cy,sz){ctx.font='bold '+sz+'px Cambria,Georgia,serif';const w=ctx.measureText(s).width+34,h=sz+26;
+  ctx.beginPath();roundRect(cx-w/2,cy-h/2,w,h,10);ctx.fillStyle=C.navy;ctx.fill();T(s,cx,cy,"#fff",sz,'center',true,true);}
+function roundRect(x,y,w,h,r){ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function rightAngle(x,y,dx1,dy1,dx2,dy2,col){const s=12;ctx.strokeStyle=col;ctx.lineWidth=1.4;ctx.beginPath();
+  ctx.moveTo(x+dx1*s,y+dy1*s);ctx.lineTo(x+dx1*s+dx2*s,y+dy1*s+dy2*s);ctx.lineTo(x+dx2*s,y+dy2*s);ctx.stroke();}
+
+// ---------------- BEATS ----------------
+function beat0(){
+  const cx=W*0.30, cy=H*0.52, a=Math.min(W*0.22,H*0.34);
+  // cube edge (a square cell face, edge labelled a)
+  ctx.strokeStyle=C.steel;ctx.lineWidth=2.5;ctx.strokeRect(cx-a/2,cy-a/2,a,a);
+  line(cx-a/2,cy+a/2+26,cx+a/2,cy+a/2+26,C.steel,2);
+  T("a",cx,cy+a/2+40,C.steel,17,'center',true,true);
+  T("cell edge length (lattice parameter)",cx,cy+a/2+58,C.mut,12.5,'center');
+  // two touching atoms → 2R
+  const bx=W*0.72, by=H*0.42, R=Math.min(W*0.06,H*0.11);
+  atom(bx-R,by,R); atom(bx+R,by,R);
+  line(bx-R,by+R+18,bx+R,by+R+18,C.terra,2.5);
+  T("2R",bx,by+R+33,C.terra,16,'center',true,true);
+  // radius on left atom
+  line(bx-R,by,bx-R+R,by,C.gedge,2,[4,3]); T("R",bx-R+R*0.45,by-12,C.ink,14,'center',true,true);
+  T("R = atomic radius",bx,by-R-16,C.ink,13,'center');
+  // key idea
+  T("In FCC & BCC, atoms do NOT touch along the cell edge —",W*0.5,H*0.80,C.ink,14,'center');
+  T("they touch along a diagonal (the close-packed direction).",W*0.5,H*0.80+20,C.ink,14,'center');
+  T("That is why the a–R formula differs by structure.",W*0.5,H*0.80+40,C.navy,14,'center',false,true);
+}
+function fccFace(cx,cy,a,p){
+  // p: flatten progress (0 = skewed/oblique, 1 = square). draw square with atoms + optional diagonal
+  const skew=(1-p)*0.45*a;
+  const c=[[cx-a/2+skew,cy-a/2-skew*0.25],[cx+a/2+skew,cy-a/2-skew*0.25],[cx+a/2,cy+a/2],[cx-a/2,cy+a/2]];
+  ctx.strokeStyle=C.steel;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(c[0][0],c[0][1]);for(let i=1;i<4;i++)ctx.lineTo(c[i][0],c[i][1]);ctx.closePath();ctx.stroke();
+  return c;
+}
+function beat1(p){
+  const cx=W*0.42, cy=H*0.52, a=Math.min(W*0.30,H*0.46);
+  const c=fccFace(cx,cy,a,p);
+  T("FCC — flatten the front face to a square of side a",W*0.5,H*0.14,C.navy,15,'center',false,true);
+  // edge label
+  T("a",(c[3][0]+c[2][0])/2,c[2][1]+22,C.steel,16,'center',true,true);
+  // face diagonal appears as p grows
+  if(p>0.4){const q=ease((p-0.4)/0.6); line(c[3][0],c[3][1],c[3][0]+(c[1][0]-c[3][0])*q,c[3][1]+(c[1][1]-c[3][1])*q,C.terra,3);
+    if(p>0.9)T("face diagonal",(c[3][0]+c[1][0])/2+10,(c[3][1]+c[1][1])/2-14,C.terra,12.5,'center',false,true);}
+  // corner + face-center atoms (faint)
+  const R=a/(2*Math.SQRT2);
+  atom(c[3][0],c[3][1],R,0.85);atom(c[1][0],c[1][1],R,0.85);atom((c[0][0]+c[2][0])/2,(c[0][1]+c[2][1])/2,R,0.85);
+}
+function beat2(){
+  const cx=W*0.34, cy=H*0.54, a=Math.min(W*0.26,H*0.42), R=a/(2*Math.SQRT2);
+  // square
+  const L=cx-a/2,Rr=cx+a/2,Tp=cy-a/2,Bp=cy+a/2;
+  ctx.strokeStyle=C.steel;ctx.lineWidth=2.5;ctx.strokeRect(L,Tp,a,a);
+  // Pythagoras legs (steel) + labels
+  line(L,Bp,Rr,Bp,C.steel,2.5); line(Rr,Bp,Rr,Tp,C.steel,2.5);
+  T("a",(L+Rr)/2,Bp+20,C.steel,15,'center',true,true); T("a",Rr+16,(Tp+Bp)/2,C.steel,15,'center',true,true);
+  rightAngle(Rr,Bp,-1,0,0,-1,C.steel);
+  // face diagonal (terra) with 3 atoms: corner, face-center, corner
+  line(L,Bp,Rr,Tp,C.terra,3.5);
+  atom(L,Bp,R); atom((L+Rr)/2,(Tp+Bp)/2,R); atom(Rr,Tp,R);
+  // segment labels R + 2R + R = 4R along diagonal
+  const mx=(L+Rr)/2, my=(Tp+Bp)/2;
+  T("R",(L+mx)/2-14,(Bp+my)/2+14,C.terra,14,'center',true,true);
+  T("2R",mx+18,my+18,C.terra,14,'center',true,true);
+  T("R",(mx+Rr)/2+14,(my+Tp)/2-14,C.terra,14,'center',true,true);
+  T("diagonal = √(a² + a²) = a√2",cx,Tp-26,C.steel,14,'center',true,true);
+  T("along it: R + 2R + R = 4R",cx,Bp+46,C.terra,14,'center',true,true);
+  // solve
+  const ex=W*0.78;
+  T("Set equal and solve:",ex,H*0.30,C.ink,14,'center');
+  T("4R = a√2",ex,H*0.40,C.ink,20,'center',true,true);
+  T("a = 4R / √2 = 2√2·R",ex,H*0.50,C.ink,18,'center',true,true);
+  boxEq("a = 2√2·R ≈ 2.83 R",ex,H*0.63,22);
+}
+function beat3(p){
+  // nested triangles: face (a,a → a√2) then body (a√2, a → a√3)
+  const s=Math.min(W*0.16,H*0.26);           // unit = a in px
+  const ox=W*0.10, oy=H*0.66;
+  // Triangle 1: face square + diagonal  (legs a & a)
+  ctx.strokeStyle=C.steel;ctx.lineWidth=2.4;
+  const A=[ox,oy], B=[ox+s,oy], D=[ox,oy-s], E=[ox+s,oy-s];
+  ctx.strokeRect(ox,oy-s,s,s);
+  line(A[0],A[1],E[0],E[1],C.terra,3);  // face diagonal a√2
+  T("a",ox+s/2,oy+18,C.steel,14,'center',true,true); T("a",ox-15,oy-s/2,C.steel,14,'center',true,true);
+  T("face diagonal = a√2",ox+s*0.55,oy-s*0.55-2,C.terra,12.5,'left',false,true);
+  T("1. the face gives a√2",ox+s/2,oy-s-22,C.navy,12.5,'center',false,true);
+  // Triangle 2: base = a√2 (horizontal), height = a (rises), hyp = a√3 (body diagonal)
+  const base=s*Math.SQRT2; const bx=W*0.44, by=H*0.72;
+  const P0=[bx,by], P1=[bx+base,by];
+  const hgt=s*ease(p);
+  const P2=[bx+base, by-hgt];
+  line(P0[0],P0[1],P1[0],P1[1],C.terra,3);           // base a√2
+  line(P1[0],P1[1],P2[0],P2[1],C.steel,2.6);          // vertical leg a
+  line(P0[0],P0[1],P2[0],P2[1],C.navy,3.4);           // hypotenuse a√3 (body diagonal)
+  rightAngle(P1[0],P1[1],-1,0,0,-1,C.steel);
+  T("a√2",bx+base/2,by+18,C.terra,13,'center',true,true);
+  if(p>0.5)T("a",P1[0]+16,by-hgt/2,C.steel,13,'center',true,true);
+  if(p>0.85){T("body diagonal = √((a√2)² + a²) = a√3",bx+base*0.1,by-hgt-16,C.navy,13,'left',false,true);
+    // atoms on body diagonal: corner + body-center + corner = 4R
+    const R=s*Math.sqrt(3)/4; const dcx=(P0[0]+P2[0])/2,dcy=(P0[1]+P2[1])/2;
+    const ux=(P2[0]-P0[0]),uy=(P2[1]-P0[1]);const len=Math.hypot(ux,uy);
+    atom(P0[0]+ux*R/len,P0[1]+uy*R/len,R,0.9); atom(dcx,dcy,R,0.9); atom(P2[0]-ux*R/len,P2[1]-uy*R/len,R,0.9);
+    T("corner + body-center + corner = 4R",bx+base*0.5,by-hgt*0.5+40,C.terra,12.5,'center',false,true);
+  }
+  T("2. unfold: √((a√2)²+a²) = √(3a²) = a√3",W*0.44,H*0.30,C.navy,13.5,'center',false,true);
+  // solve
+  const ex=W*0.80;
+  T("4R = a√3",ex,H*0.42,C.ink,20,'center',true,true);
+  T("a = 4R / √3",ex,H*0.52,C.ink,18,'center',true,true);
+  boxEq("a = 4R/√3 ≈ 2.31 R",ex,H*0.64,22);
+}
+function beat4(){
+  const cx=W*0.34, cy=H*0.50, R=Math.min(W*0.075,H*0.14);
+  // basal edge: two touching atoms, center-to-center = a = 2R
+  atom(cx-R,cy,R); atom(cx+R,cy,R);
+  line(cx-R,cy+R+18,cx+R,cy+R+18,C.terra,3);
+  T("a = 2R",cx,cy+R+36,C.terra,17,'center',true,true);
+  T("atoms touch straight along the basal edge",cx,cy-R-20,C.ink,13,'center');
+  // hex hint
+  ctx.strokeStyle=C.line;ctx.lineWidth=1.6;ctx.beginPath();
+  for(let k=0;k<6;k++){const A=k*Math.PI/3;const x=cx+2.1*R*Math.cos(A),y=cy+1.2*R+2.1*R*Math.sin(A)*0.5;if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();ctx.stroke();
+  // results
+  const ex=W*0.74;
+  boxEq("a = 2R",ex,H*0.40,24);
+  T("ideal c/a = √(8/3) = 1.633",ex,H*0.55,C.ink,17,'center',true,true);
+  T("No diagonal gymnastics — which is exactly",ex,H*0.66,C.mut,12.5,'center');
+  T("why FCC and BCC needed them.",ex,H*0.66+18,C.mut,12.5,'center');
+}
+function beat5(){
+  const eqA={fcc:"a = 2√2·R",bcc:"a = 4R/√3",hcp:"a = 2R"}[structure];
+  T("The payoff — this feeds straight into theoretical density",W*0.5,H*0.16,C.navy,15,'center',false,true);
+  const y=H*0.42, xs=[W*0.20,W*0.50,W*0.80];
+  const cards=[[eqA,"a in terms of R"],["V_c = a³","cell volume"],["ρ = nA / (V_c·N_A)","theoretical density"]];
+  cards.forEach((cd,i)=>{ const w=W*0.24,h=H*0.20,x=xs[i]-w/2;
+    ctx.beginPath();roundRect(x,y-h/2,w,h,12);ctx.fillStyle=C.bg;ctx.fill();ctx.strokeStyle=i===2?C.terra:C.steel;ctx.lineWidth=1.6;ctx.stroke();
+    T(cd[0],xs[i],y-8,C.navy,i===2?18:20,'center',true,true); T(cd[1],xs[i],y+24,C.mut,12.5,'center');
+    if(i<2){T("→",(xs[i]+xs[i+1])/2,y,C.mut,26,'center',true,true);} });
+  T("Knowing a in terms of R gives the cell volume — and therefore the density —",W*0.5,H*0.68,C.ink,13.5,'center');
+  T("from the atomic radius alone.",W*0.5,H*0.68+20,C.ink,13.5,'center');
+}
+function scene(){
+  if(beat===0)beat0();
+  else if(beat===1)beat1(tp);
+  else if(beat===2)beat2();
+  else if(beat===3)beat3(tp);
+  else if(beat===4)beat4();
+  else if(beat===5)beat5();
+}
+function draw(){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);scene();
+  const [chip,tx]=CAP[beat];document.getElementById('chip').textContent="BEAT "+beat+" · "+chip;document.getElementById('txt').textContent=tx;
+  const seq=SEQ[structure];document.getElementById('which').textContent=(idx+1)+" / "+seq.length+"  ("+structure.toUpperCase()+")";}
+function setBeat(newIdx){const seq=SEQ[structure];idx=Math.max(0,Math.min(seq.length-1,newIdx));beat=seq[idx];tp=0;}
+function tick(){ if(tp<1)tp=Math.min(1,tp+0.03);
+  if(playing){ if(tp>=1){holdT+=1; if(holdT>70){holdT=0; if(idx<SEQ[structure].length-1)setBeat(idx+1); else playing=false;}} }
+  draw(); requestAnimationFrame(tick);}
+// controls
+document.getElementById('seg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  [...document.querySelectorAll('#seg button')].forEach(x=>x.classList.toggle('on',x===b));
+  structure=b.dataset.s;idx=0;beat=SEQ[structure][0];tp=0;playing=false;});
+document.getElementById('play').onclick=()=>{playing=true;if(idx>=SEQ[structure].length-1){setBeat(0);}holdT=0;};
+document.getElementById('step').onclick=()=>{playing=false;setBeat(idx+1);};
+document.getElementById('reset').onclick=()=>{playing=false;setBeat(0);};
+resize(); setBeat(0); requestAnimationFrame(tick);
+</script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Bragg's Law — where 2d·sinθ comes from</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--gold:#F2B705;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  #app{display:flex;flex-direction:column;height:100vh;}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:20px;font-weight:700;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  .bar{display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center;padding:9px 18px;background:#fff;border-bottom:1px solid var(--line);}
+  .ctl{display:flex;align-items:center;gap:8px;}
+  .ctl label{font-size:12px;font-weight:700;color:var(--mut);min-width:14px;}
+  .ctl output{font-size:13px;font-weight:700;color:var(--navy);min-width:52px;font-family:Cambria,serif;}
+  input[type=range]{width:120px;}
+  .step{display:flex;gap:6px;align-items:center;margin-left:auto;}
+  button{font-family:inherit;font-size:13px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);
+    padding:6px 12px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  button:disabled{opacity:.4;cursor:default;}
+  #stage{position:relative;flex:1;min-height:0;display:flex;}
+  #main{flex:1;min-width:0;position:relative;}
+  canvas{display:block;width:100%;height:100%;}
+  #side{width:250px;border-left:1px solid var(--line);background:#fff;padding:14px;display:flex;flex-direction:column;gap:12px;}
+  .card{background:var(--bg);border-radius:10px;padding:10px 12px;}
+  .card .lab{font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--mut);text-transform:uppercase;}
+  .card .big{font-family:Cambria,serif;font-size:19px;font-weight:700;color:var(--navy);margin-top:2px;}
+  #status{border-radius:10px;padding:10px 12px;font-weight:700;font-size:14px;text-align:center;}
+  #imeter{height:14px;background:var(--line);border-radius:7px;overflow:hidden;margin-top:6px;}
+  #ifill{height:100%;width:0;background:var(--terra);transition:width .05s;}
+  #curve{width:100%;height:96px;background:var(--bg);border-radius:10px;}
+  #narr{position:absolute;left:14px;bottom:12px;right:14px;background:rgba(255,255,255,.94);border:1px solid var(--line);
+    border-radius:10px;padding:9px 13px;font-size:13px;line-height:1.45;color:var(--ink);box-shadow:0 2px 10px rgba(31,56,100,.10);}
+  #narr b{color:var(--navy);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Bragg's law — where 2d·sinθ actually comes from</h1>
+    <p>Drag θ and watch the two reflected rays drift in and out of phase · ENGR 170</p>
+  </header>
+  <div class="bar">
+    <div class="ctl"><label>θ</label><input id="th" type="range" min="8" max="70" value="26" step="0.5"/><output id="tho">26°</output></div>
+    <div class="ctl"><label>d</label><input id="d" type="range" min="0.8" max="2.0" value="1.4" step="0.05"/><output id="do">1.40</output></div>
+    <div class="ctl"><label>λ</label><input id="lam" type="range" min="0.4" max="1.2" value="0.75" step="0.05"/><output id="lamo">0.75</output></div>
+    <div class="step">
+      <button id="prev" onclick="step(-1)">‹ Prev</button>
+      <span id="stepn" style="font-size:12px;color:var(--mut);min-width:74px;text-align:center;">step 1 / 6</span>
+      <button id="next" onclick="step(1)">Next ›</button>
+    </div>
+  </div>
+  <div id="stage">
+    <div id="main"><canvas id="cv"></canvas>
+      <div id="narr"></div>
+    </div>
+    <div id="side">
+      <div class="card"><div class="lab">Path difference</div><div class="big" id="delta">Δ = 2d·sinθ</div></div>
+      <div class="card"><div class="lab">In wavelengths</div><div class="big" id="ratio">— λ</div></div>
+      <div id="status">—</div>
+      <div><div class="lab" style="font-size:11px;font-weight:700;color:var(--mut);">Reflected intensity  I = cos²(πΔ/λ)</div><div id="imeter"><div id="ifill"></div></div></div>
+      <div><div class="lab" style="font-size:11px;font-weight:700;color:var(--mut);">Intensity vs θ (Bragg peaks)</div><canvas id="curve"></canvas></div>
+    </div>
+  </div>
+</div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const cu=document.getElementById('curve'),cc=cu.getContext('2d');
+let th=26*Math.PI/180, d=1.4, lam=0.75, stp=1, t=0;
+const NARR=[
+ "<b>1 · Two rays arrive in phase.</b> Same wavelength, crests aligned along the shared <b style='color:#1F7A63'>wavefront</b>. They come in at glancing angle θ.",
+ "<b>2 · They scatter off adjacent planes,</b> spacing d. The top ray reflects off the top plane; the bottom ray continues, hits the next plane, and reflects.",
+ "<b>3 · Left of P and right of Q, both rays travel together</b> — identical path. The <i>only</i> difference is trapped between the two perpendiculars.",
+ "<b>4 · Each trapped segment = d·sinθ.</b> In the little right triangle, d is opposite θ, so the leg is d·sinθ. There are two — one going in, one coming out.",
+ "<b>5 · Add them: Δ = 2d·sinθ.</b> That is the entire extra distance the lower ray travels.",
+ "<b>6 · Now sweep θ.</b> The reflected waves drift out of phase and back; they snap bright exactly when <b>2d·sinθ = nλ</b>. That alignment is a <b style='color:#B85042'>Bragg peak</b>."
+];
+function resize(){const r=cv.getBoundingClientRect();cv.width=r.width*devicePixelRatio;cv.height=r.height*devicePixelRatio;
+  const c=cu.getBoundingClientRect();cu.width=c.width*devicePixelRatio;cu.height=c.height*devicePixelRatio;}
+window.addEventListener('resize',resize);
+function geom(){const u=[Math.cos(th),-Math.sin(th)],v=[Math.cos(th),Math.sin(th)];
+  const T=[0,d],B=[0,0],ds=d*Math.sin(th);
+  const P=[B[0]-ds*u[0],B[1]-ds*u[1]],Q=[B[0]+ds*v[0],B[1]+ds*v[1]];
+  return{u,v,T,B,P,Q,ds};}
+function draw(){
+  const w=cv.width,h=cv.height,S=Math.min(w/6.6,h/4.3),ox=w*0.40,oy=h*0.66;
+  const X=dx=>ox+dx*S, Y=dy=>oy-dy*S;
+  ctx.clearRect(0,0,w,h);
+  const g=geom(),{u,v,T,B,P,Q,ds}=g, Lin=2.7;
+  const line=(a,b,col,lw,dash)=>{ctx.beginPath();ctx.setLineDash(dash||[]);ctx.moveTo(X(a[0]),Y(a[1]));ctx.lineTo(X(b[0]),Y(b[1]));ctx.strokeStyle=col;ctx.lineWidth=lw*devicePixelRatio;ctx.lineCap='round';ctx.stroke();ctx.setLineDash([]);};
+  const dot=(a,r,col)=>{ctx.beginPath();ctx.arc(X(a[0]),Y(a[1]),r*devicePixelRatio,0,7);ctx.fillStyle=col;ctx.fill();};
+  const txt=(s,a,col,sz,al)=>{ctx.fillStyle=col;ctx.font=(sz*devicePixelRatio)+"px Cambria, Georgia, serif";ctx.textAlign=al||'left';ctx.textBaseline='middle';ctx.fillText(s,X(a[0]),Y(a[1]));};
+  // planes
+  if(stp>=2){for(const yy of [0,d]){line([-3.0,yy],[3.0,yy],"#6B7480",1.3);
+    for(let xx=-2.6;xx<=2.6;xx+=0.6){dot([xx,yy],3.2,"#9AA3AD");}}
+    txt("atomic planes",[1.7,-0.32],"#6B7480",12,'center');}
+  // incident rays
+  line([T[0]-Lin*u[0],T[1]-Lin*u[1]],T,"#2E5496",2.4);
+  line([B[0]-Lin*u[0],B[1]-Lin*u[1]],B,"#2E5496",2.4);
+  // outgoing
+  if(stp>=2){line(T,[T[0]+Lin*v[0],T[1]+Lin*v[1]],"#2E5496",2.4);
+    line(B,[B[0]+Lin*v[0],B[1]+Lin*v[1]],"#2E5496",2.4);
+    dot(T,5,"#1F3864");dot(B,5,"#1F3864");}
+  // wavefronts (in phase)
+  line(T,P,"#1F7A63",2.2);
+  if(stp>=3){line(T,Q,"#1F7A63",2.2);
+    dot(P,3.6,"#21262E");dot(Q,3.6,"#21262E");
+    txt("P",[P[0]-0.16,P[1]+0.02],"#21262E",13,'right');txt("Q",[Q[0]+0.16,Q[1]+0.02],"#21262E",13,'left');
+    txt("wavefront",[ (T[0]+P[0])/2-0.15,(T[1]+P[1])/2+0.28],"#1F7A63",11,'right');}
+  // segments d sinθ
+  if(stp>=4){line(P,B,"#E8890C",4.2);line(B,Q,"#E8890C",4.2);
+    line([0,0],[0,d],"#1F3864",1.6,[5,3]);txt("d",[0.12,d/2],"#1F3864",15,'left');
+    txt("d·sinθ",[P[0]-0.16,P[1]+0.05],"#B85042",12,'right');txt("d·sinθ",[Q[0]+0.16,Q[1]+0.05],"#B85042",12,'left');
+    // theta arc
+    ctx.beginPath();ctx.arc(X(0),Y(0),0.5*S,Math.PI,Math.PI-th,true);ctx.strokeStyle="#21262E";ctx.lineWidth=1.4*devicePixelRatio;ctx.stroke();
+    txt("θ",[-0.62,0.17],"#21262E",13,'center');}
+  // delta callout
+  if(stp>=5){const val=2*d*Math.sin(th);
+    ctx.fillStyle="rgba(250,238,205,0.95)";ctx.strokeStyle="#E8890C";ctx.lineWidth=1.4*devicePixelRatio;
+    const bx=X(0)-95*devicePixelRatio,by=Y(3.02)-16*devicePixelRatio;
+    roundRect(ctx,bx,by,190*devicePixelRatio,32*devicePixelRatio,7*devicePixelRatio);ctx.fill();ctx.stroke();
+    ctx.fillStyle="#1F3864";ctx.font="bold "+(13*devicePixelRatio)+"px Cambria, serif";ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText("Δ = 2d·sinθ = "+val.toFixed(2),X(0),Y(3.02));}
+  // waves on outgoing rays (step 6)
+  if(stp>=6){
+    const k=2*Math.PI/lam, amp=0.16, Lw=2.5, delta=2*d*Math.sin(th);
+    const pdir=[-v[1],v[0]];
+    drawWave(ctx,X,Y,T,v,pdir,k,amp,Lw,-t,"#2E5496",devicePixelRatio);
+    drawWave(ctx,X,Y,Q,v,pdir,k,amp,Lw,-t-k*delta,"#B85042",devicePixelRatio);
+  }
+  drawCurve();
+  updateReadout();
+}
+function drawWave(ctx,X,Y,S,v,pd,k,amp,L,ph,col,dp){
+  ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=2.0*dp;
+  for(let s=0;s<=L;s+=0.03){const off=amp*Math.sin(k*s+ph);
+    const px=S[0]+s*v[0]+off*pd[0], py=S[1]+s*v[1]+off*pd[1];
+    if(s===0)ctx.moveTo(X(px),Y(py));else ctx.lineTo(X(px),Y(py));}
+  ctx.stroke();
+}
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function drawCurve(){
+  const w=cu.width,h=cu.height;cc.clearRect(0,0,w,h);
+  const t0=8*Math.PI/180,t1=70*Math.PI/180;
+  cc.beginPath();
+  for(let i=0;i<=200;i++){const a=t0+(t1-t0)*i/200;const I=Math.pow(Math.cos(Math.PI*2*d*Math.sin(a)/lam),2);
+    const x=i/200*w, y=h-6*devicePixelRatio-I*(h-12*devicePixelRatio);
+    if(i===0)cc.moveTo(x,y);else cc.lineTo(x,y);}
+  cc.strokeStyle="#2E5496";cc.lineWidth=1.6*devicePixelRatio;cc.stroke();
+  const cx=(th-t0)/(t1-t0)*w;
+  cc.beginPath();cc.moveTo(cx,0);cc.lineTo(cx,h);cc.strokeStyle="#B85042";cc.lineWidth=1.4*devicePixelRatio;cc.stroke();
+}
+function updateReadout(){
+  const val=2*d*Math.sin(th), ratio=val/lam, I=Math.pow(Math.cos(Math.PI*ratio),2), nr=Math.round(ratio);
+  document.getElementById('delta').textContent="Δ = "+val.toFixed(2);
+  document.getElementById('ratio').textContent=ratio.toFixed(2)+" λ";
+  document.getElementById('ifill').style.width=(I*100).toFixed(0)+"%";
+  const near=Math.abs(ratio-nr)<0.04 && nr>=1;
+  const st=document.getElementById('status');
+  if(near){st.textContent="Bragg peak — n = "+nr;st.style.background="#FBE7E2";st.style.color="#B85042";
+    document.getElementById('ifill').style.background="#1F7A63";}
+  else{st.textContent="off-Bragg — waves cancel";st.style.background="var(--bg)";st.style.color="var(--mut)";
+    document.getElementById('ifill').style.background="#B85042";}
+  document.getElementById('narr').innerHTML=NARR[stp-1];
+  document.getElementById('stepn').textContent="step "+stp+" / 6";
+  document.getElementById('prev').disabled=stp<=1;document.getElementById('next').disabled=stp>=6;
+}
+function step(dir){stp=Math.max(1,Math.min(6,stp+dir));}
+document.getElementById('th').addEventListener('input',e=>{th=e.target.value*Math.PI/180;document.getElementById('tho').textContent=(+e.target.value).toFixed(1)+"°";if(stp<6)stp=6;});
+document.getElementById('d').addEventListener('input',e=>{d=+e.target.value;document.getElementById('do').textContent=d.toFixed(2);});
+document.getElementById('lam').addEventListener('input',e=>{lam=+e.target.value;document.getElementById('lamo').textContent=lam.toFixed(2);});
+function loop(){t+=0.09;draw();requestAnimationFrame(loop);}
+resize();updateReadout();loop();
+</script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Crystal Structures — FCC · BCC · HCP</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  #app{display:flex;flex-direction:column;height:100vh;}
+  header{padding:13px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;font-weight:700;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  .bar{display:flex;flex-wrap:wrap;gap:7px 8px;align-items:center;padding:9px 16px;background:#fff;border-bottom:1px solid var(--line);}
+  .grp{display:flex;gap:6px;align-items:center;}
+  .sep{width:1px;height:26px;background:var(--line);margin:0 3px;}
+  .lbl{font-size:10.5px;font-weight:700;letter-spacing:.5px;color:var(--mut);text-transform:uppercase;}
+  button{font-family:inherit;font-size:13.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);
+    padding:7px 12px;border-radius:8px;cursor:pointer;transition:all .12s;}
+  button:hover{border-color:var(--steel);}
+  button.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  button.act{background:var(--steel);color:#fff;border-color:var(--steel);}
+  button:disabled{opacity:.45;cursor:default;}
+  #stage{position:relative;flex:1;min-height:0;}
+  canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;}
+  canvas:active{cursor:grabbing;}
+  #counter{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(255,255,255,.93);
+    border:1px solid var(--line);border-radius:10px;padding:7px 18px;font-family:Cambria,Georgia,serif;font-size:21px;
+    font-weight:700;color:var(--navy);box-shadow:0 2px 10px rgba(31,56,100,.10);min-width:160px;text-align:center;}
+  #counter .sub{display:block;font-family:Calibri,sans-serif;font-size:12px;font-weight:600;color:var(--mut);margin-top:1px;}
+  #facts{position:absolute;left:14px;bottom:14px;background:rgba(255,255,255,.94);border:1px solid var(--line);
+    border-radius:10px;padding:9px 13px;font-size:12.5px;line-height:1.5;box-shadow:0 2px 10px rgba(31,56,100,.10);max-width:250px;}
+  #facts b{color:var(--navy);}
+  #hint{position:absolute;right:14px;bottom:14px;color:var(--mut);font-size:11.5px;font-style:italic;
+    background:rgba(241,244,248,.82);padding:5px 10px;border-radius:8px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Crystal Structures of Metals</h1>
+    <p>Drag to rotate · scroll to zoom · ENGR 170 — Introduction to Materials Science &amp; Engineering</p>
+  </header>
+  <div class="bar">
+    <div class="grp">
+      <span class="lbl">Structure</span>
+      <button id="b-fcc" class="on" onclick="pick('fcc')">FCC</button>
+      <button id="b-bcc" onclick="pick('bcc')">BCC</button>
+      <button id="b-hcp" onclick="pick('hcp')">HCP</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <span class="lbl">Show</span>
+      <button id="m-faces" onclick="run('faces')">Count faces</button>
+      <button id="m-edges" onclick="run('edges')">Count edges</button>
+      <button id="m-coord" onclick="run('coord')">Coordination #</button>
+      <button id="m-apf" onclick="run('apf')">APF · inflate</button>
+      <button id="m-stack" onclick="run('stack')">Stacking</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
+      <button onclick="reset()">Reset</button>
+      <button id="b-spin" class="on" onclick="toggleSpin()">Auto-rotate: on</button>
+    </div>
+  </div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="counter"></div>
+    <div id="facts"></div>
+    <div id="hint">Drag to rotate · scroll to zoom</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const COL={gold:0xF2B705,goldEmis:0x5a4300,edge:0x3F4A5A,edgeHi:0xB85042,faceHi:0x2E5496,
+  teal:0x1F7A63,terra:0xB85042,steel:0x2E5496,navy:0x1F3864,ghost:0xB9C6E0};
+const NAMES={fcc:"Face-Centered Cubic",bcc:"Body-Centered Cubic",hcp:"Hexagonal Close-Packed"};
+const INFO={
+ fcc:{cell:"4 atoms/cell",cn:"CN 12",apf:"APF 0.74",f:6,e:12,touchR:Math.SQRT2/4,baseR:0.15,dir:"face diagonal"},
+ bcc:{cell:"2 atoms/cell",cn:"CN 8",apf:"APF 0.68",f:6,e:12,touchR:Math.sqrt(3)/4,baseR:0.15,dir:"body diagonal"},
+ hcp:{cell:"6 atoms/cell",cn:"CN 12",apf:"APF 0.74",f:8,e:18,touchR:0.5,baseR:0.20,dir:"basal edge"}
+};
+let scene,camera,renderer,group,current="fcc",mode="cell";
+let atomMeshes=[],faceMeshes=[],edgeMeshes=[],cpLine=null;
+let running=false,tok=0,spin=true,zoom=1;
+let apfCur=0,apfTgt=0,apfActive=false;
+
+function sphere(r){return new THREE.SphereGeometry(r,26,20);}
+function goldMat(){return new THREE.MeshStandardMaterial({color:COL.gold,emissive:COL.goldEmis,emissiveIntensity:.18,roughness:.42,metalness:.25});}
+function solidMat(c){return new THREE.MeshStandardMaterial({color:c,roughness:.5,metalness:.15});}
+function cyl(p,q,color,rad){
+  const a=new THREE.Vector3(...p),b=new THREE.Vector3(...q),dir=new THREE.Vector3().subVectors(b,a),len=dir.length();
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad,len,12),new THREE.MeshStandardMaterial({color,roughness:.6,metalness:.1}));
+  m.position.copy(a).add(b).multiplyScalar(.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());
+  return m;
+}
+function faceMesh(verts){
+  const pts=verts.map(v=>new THREE.Vector3(...v)),pos=[];
+  for(let i=1;i<pts.length-1;i++)pos.push(pts[0].x,pts[0].y,pts[0].z,pts[i].x,pts[i].y,pts[i].z,pts[i+1].x,pts[i+1].y,pts[i+1].z);
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.computeVertexNormals();
+  return new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:COL.faceHi,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
+}
+function newGroup(){ if(group)scene.remove(group); group=new THREE.Group(); atomMeshes=[];faceMeshes=[];edgeMeshes=[];cpLine=null; scene.add(group); }
+function addAtom(pos,r,mat){const m=new THREE.Mesh(sphere(1),mat);m.scale.setScalar(r);m.position.set(...pos);m.userData.baseR=r;group.add(m);atomMeshes.push(m);return m;}
+function centerGroup(shift,scl){group.children.forEach(o=>o.position.sub(new THREE.Vector3(...shift)));group.scale.setScalar(scl);group.rotation.set(0.42,-0.66,0);}
+
+// ---------- geometry ----------
+function cubeCorners(){const c=[];for(const x of[0,1])for(const y of[0,1])for(const z of[0,1])c.push([x,y,z]);return c;}
+function cubeEdges(){const C=cubeCorners(),e=[];for(let i=0;i<8;i++)for(let j=i+1;j<8;j++){let d=0;for(let k=0;k<3;k++)d+=C[i][k]!==C[j][k];if(d===1)e.push([C[i],C[j]]);}return e;}
+function cubeFaces(){const C=cubeCorners(),f=[],ord=[[2,0],[2,1],[0,0],[0,1],[1,0],[1,1]];
+  for(const[ax,val]of ord){let vs=C.filter(c=>c[ax]===val),o=[0,1,2].filter(k=>k!==ax);
+    vs.sort((p,q)=>Math.atan2(p[o[1]]-.5,p[o[0]]-.5)-Math.atan2(q[o[1]]-.5,q[o[0]]-.5));f.push(vs);}return f;}
+function hexGeom(){const H=1.7,top=[],bot=[];
+  for(let k=0;k<6;k++){const a=k*Math.PI/3;top.push([Math.cos(a),Math.sin(a),H]);bot.push([Math.cos(a),Math.sin(a),0]);}
+  const edges=[];for(let k=0;k<6;k++){edges.push([top[k],top[(k+1)%6]]);edges.push([bot[k],bot[(k+1)%6]]);edges.push([top[k],bot[k]]);}
+  const faces=[top.slice(),bot.slice()];for(let k=0;k<6;k++)faces.push([top[k],top[(k+1)%6],bot[(k+1)%6],bot[k]]);
+  let atoms=top.concat(bot);atoms.push([0,0,H]);atoms.push([0,0,0]);
+  for(const a of[Math.PI/2,7*Math.PI/6,11*Math.PI/6])atoms.push([0.58*Math.cos(a),0.58*Math.sin(a),H/2]);
+  return{atoms,edges,faces,H};
+}
+
+// ---------- build the unit cell ----------
+function buildCell(s){
+  newGroup(); mode="cell"; apfActive=false; apfCur=0; apfTgt=0;
+  const R=INFO[s].baseR;
+  if(s==='hcp'){
+    const g=hexGeom();
+    g.faces.forEach(f=>{const m=faceMesh(f);group.add(m);faceMeshes.push(m);});
+    g.edges.forEach(([p,q])=>{const m=cyl(p,q,COL.edge,0.03);group.add(m);edgeMeshes.push(m);});
+    g.atoms.forEach(a=>addAtom(a,R,goldMat()));
+    centerGroup([0,0,g.H/2],1.5);
+  }else{
+    cubeFaces().forEach(f=>{const m=faceMesh(f);group.add(m);faceMeshes.push(m);});
+    cubeEdges().forEach(([p,q])=>{const m=cyl(p,q,COL.edge,0.028);group.add(m);edgeMeshes.push(m);});
+    let atoms=cubeCorners();
+    if(s==='fcc')cubeFaces().forEach(f=>{let m=[0,1,2].map(k=>f.reduce((t,v)=>t+v[k],0)/4);atoms.push(m);});
+    if(s==='bcc')atoms.push([.5,.5,.5]);
+    atoms.forEach(a=>addAtom(a,R,goldMat()));
+    centerGroup([.5,.5,.5],3.2/2.6);
+  }
+  setInfo(s);
+}
+
+// ---------- coordination ----------
+function coordData(s){
+  if(s==='fcc'){const nb=[];for(const p of[[.5,.5,0],[.5,-.5,0],[-.5,.5,0],[-.5,-.5,0],[.5,0,.5],[.5,0,-.5],[-.5,0,.5],[-.5,0,-.5],[0,.5,.5],[0,.5,-.5],[0,-.5,.5],[0,-.5,-.5]])nb.push(p);
+    return{center:[0,0,0],nb,cell:[[0,0,0],[1,1,1]],note:"12 neighbors — half reach into adjacent cells",n:12};}
+  if(s==='bcc'){return{center:[.5,.5,.5],nb:cubeCorners(),cell:[[0,0,0],[1,1,1]],note:"body-center atom touches 8 corner atoms",n:8};}
+  const nb=[];for(let k=0;k<6;k++){const a=k*Math.PI/3;nb.push([Math.cos(a),Math.sin(a),0]);}
+  const h=Math.sqrt(2/3);for(const a of[Math.PI/2,7*Math.PI/6,11*Math.PI/6]){nb.push([0.577*Math.cos(a),0.577*Math.sin(a),h]);nb.push([0.577*Math.cos(a),0.577*Math.sin(a),-h]);}
+  return{center:[0,0,0],nb,cell:null,note:"6 in-plane + 3 above + 3 below = 12",n:12};
+}
+async function buildCoord(s){
+  newGroup(); mode="coord";
+  const d=coordData(s),R=0.34;
+  if(d.cell){ // faint reference cube edges
+    cubeEdges().forEach(([p,q])=>{const m=cyl(p,q,COL.ghost,0.012);m.material.transparent=true;m.material.opacity=.5;group.add(m);});
+  }
+  addAtom(d.center,R,solidMat(COL.navy));
+  const allx=d.nb.concat([d.center]);
+  const cx=allx.reduce((s0,p)=>s0+p[0],0)/allx.length, cy=allx.reduce((s0,p)=>s0+p[1],0)/allx.length, cz=allx.reduce((s0,p)=>s0+p[2],0)/allx.length;
+  const shift=new THREE.Vector3(cx,cy,cz);
+  centerGroup([cx,cy,cz], s==='hcp'?1.5:2.2);
+  setInfo(s);
+  // animate neighbors + bonds (added after centerGroup, so shift manually)
+  const myTok=tok; running=true;
+  for(let i=0;i<d.nb.length;i++){
+    if(myTok!==tok)return;
+    const nm=addAtom(d.nb[i],R,solidMat(COL.teal)); nm.position.sub(shift);
+    const bond=cyl(d.center,d.nb[i],COL.terra,0.02); bond.position.sub(shift); group.add(bond);
+    setCounter("CN = "+(i+1)+" / "+d.n, d.note, COL2(COL.teal));
+    await sleep(400);
+  }
+  running=false;
+}
+
+// ---------- APF inflate ----------
+function doAPF(s){
+  buildCell(s); mode="apf"; apfActive=true; apfTgt=1; apfCur=0;
+  // close-packed direction line
+  let p,q;
+  if(s==='fcc'){p=[0,0,0];q=[1,1,0];}
+  else if(s==='bcc'){p=[0,0,0];q=[1,1,1];}
+  else{p=[Math.cos(0),Math.sin(0),0];q=[Math.cos(Math.PI/3),Math.sin(Math.PI/3),0];}
+  const ln=cyl(p,q,COL.amber,0.02);
+  if(s==='hcp')ln.position.sub(new THREE.Vector3(0,0,hexGeom().H/2));else ln.position.sub(new THREE.Vector3(.5,.5,.5));
+  group.add(ln); cpLine=ln;
+  setCounter(INFO[s].apf, "atoms touch along the "+INFO[s].dir, COL2(COL.amber));
+  setInfo(s);
+}
+
+// ---------- stacking ----------
+function hexPatch(rad){const pts=[];for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){const x=i+0.5*j,y=(Math.sqrt(3)/2)*j;if(Math.hypot(x,y)<=rad+1e-6)pts.push([x,y]);}return pts;}
+async function buildStack(s){
+  newGroup(); mode="stack";
+  if(s==='bcc'){
+    buildCell('bcc'); mode="stack";
+    setCounter("BCC is not close-packed","APF 0.68 — no ABAB/ABCABC stacking",COL2(COL.terra));
+    document.getElementById('facts').innerHTML="<b>BCC</b> does not form close-packed layers.<br>Only <b>FCC</b> (ABCABC) and <b>HCP</b> (ABAB) stack close-packed planes.";
+    return;
+  }
+  const seq = s==='fcc'?['A','B','C','A']:['A','B','A','B'];
+  const off={A:[0,0],B:[0.5,Math.sqrt(3)/6],C:[1.0,Math.sqrt(3)/3]};
+  const colOf={A:COL.gold,B:COL.teal,C:COL.terra};
+  const dz=Math.sqrt(2/3),R=0.5,patch=hexPatch(2.05);
+  const nlayers=seq.length, zc=(nlayers-1)*dz/2;
+  centerGroup([0,0,0],1.05); group.position.set(0,0,0);
+  setInfo(s);
+  const myTok=tok; running=true;
+  for(let L=0;L<seq.length;L++){
+    if(myTok!==tok)return;
+    const letter=seq[L],o=off[letter],mat=solidMat(colOf[letter]);
+    patch.forEach(([x,y])=>{
+      const m=new THREE.Mesh(sphere(R),mat.clone());
+      m.position.set((x+o[0])-0, (y+o[1])-0, L*dz-zc); group.add(m);
+    });
+    const shown=seq.slice(0,L+1).join('');
+    const label = s==='fcc' ? (L>=2?"A B C…":shown) : shown;
+    setCounter((s==='fcc'?"ABCABC":"ABAB"), "stacking: "+shown+(L===seq.length-1?"  ✓":""), COL2(colOf[letter]));
+    await sleep(700);
+  }
+  if(myTok!==tok)return;
+  if(s==='fcc') document.getElementById('facts').innerHTML="<b>FCC = ABCABC</b><br>The close-packed planes are the <b>{111} planes</b>, tilted diagonally inside the cube.<br>APF 0.74 · CN 12";
+  else document.getElementById('facts').innerHTML="<b>HCP = ABAB</b><br>Close-packed basal planes stack directly over every other layer.<br>APF 0.74 · CN 12";
+  running=false;
+}
+
+// ---------- counting (slower) ----------
+async function countFaces(s){
+  running=true; const myTok=tok;
+  for(let i=0;i<faceMeshes.length;i++){ if(myTok!==tok)return;
+    faceMeshes[i].material.color.setHex(COL.faceHi); faceMeshes[i].material.opacity=0.42;
+    setCounter("Faces: "+(i+1)+" / "+faceMeshes.length,"each shared between cells",COL2(COL.steel));
+    await sleep(650);
+  }
+  running=false;
+}
+async function countEdges(s){
+  running=true; const myTok=tok;
+  for(let i=0;i<edgeMeshes.length;i++){ if(myTok!==tok)return;
+    edgeMeshes[i].material.color.setHex(COL.edgeHi); edgeMeshes[i].scale.set(1.9,1,1.9);
+    setCounter("Edges: "+(i+1)+" / "+edgeMeshes.length,"shared where cells meet",COL2(COL.terra));
+    await sleep(420);
+  }
+  running=false;
+}
+
+// ---------- dispatch ----------
+function run(m){
+  tok++; running=false;
+  clearMbtns(); const b=document.getElementById('m-'+m); if(b)b.classList.add('act');
+  if(m==='faces'||m==='edges'){ if(mode!=='cell')buildCell(current); resetOverlays(); (m==='faces'?countFaces:countEdges)(current); }
+  else if(m==='coord'){ buildCoord(current); }
+  else if(m==='apf'){ doAPF(current); }
+  else if(m==='stack'){ buildStack(current); }
+}
+function pick(s){
+  ['fcc','bcc','hcp'].forEach(k=>document.getElementById('b-'+k).classList.toggle('on',k===s));
+  tok++; running=false; clearMbtns(); current=s; buildCell(s);
+}
+function reset(){ tok++; running=false; clearMbtns(); buildCell(current); }
+function clearMbtns(){['faces','edges','coord','apf','stack'].forEach(k=>document.getElementById('m-'+k).classList.remove('act'));}
+function resetOverlays(){faceMeshes.forEach(m=>{m.material.opacity=0;});edgeMeshes.forEach(m=>{m.material.color.setHex(COL.edge);m.scale.set(1,1,1);});}
+
+// ---------- ui helpers ----------
+function COL2(hex){return '#'+hex.toString(16).padStart(6,'0');}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function setCounter(t,sub,col){const c=document.getElementById('counter');c.style.color=col||'var(--navy)';c.innerHTML=t+'<span class="sub">'+sub+'</span>';}
+function setInfo(s){const F=INFO[s];
+  document.getElementById('counter').innerHTML=NAMES[s]+'<span class="sub">drag to rotate</span>';
+  document.getElementById('counter').style.color='var(--navy)';
+  document.getElementById('facts').innerHTML=`<b>${NAMES[s]}</b><br>${F.cell} · ${F.cn} · ${F.apf}`+
+    `<br><span style="color:var(--mut)">${F.f} faces · ${F.e} edges</span>`;
+}
+function toggleSpin(){spin=!spin;const b=document.getElementById('b-spin');b.classList.toggle('on',spin);b.textContent='Auto-rotate: '+(spin?'on':'off');}
+
+// ---------- three setup ----------
+function init(){
+  const cv=document.getElementById('cv');
+  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+  scene=new THREE.Scene();
+  camera=new THREE.PerspectiveCamera(38,1,0.1,100); camera.position.set(0,0,7);
+  scene.add(new THREE.AmbientLight(0xffffff,0.72));
+  const d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(4,6,8);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0xffffff,0.32);d2.position.set(-5,-3,-4);scene.add(d2);
+  buildCell('fcc'); resize(); window.addEventListener('resize',resize); setupDrag(cv); animate();
+}
+function resize(){const s=document.getElementById('stage');renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(s.clientWidth,s.clientHeight,false);camera.aspect=s.clientWidth/s.clientHeight;camera.updateProjectionMatrix();}
+function setupDrag(cv){let down=false,px=0,py=0;
+  cv.addEventListener('pointerdown',e=>{down=true;px=e.clientX;py=e.clientY;cv.setPointerCapture(e.pointerId);});
+  cv.addEventListener('pointerup',()=>down=false);
+  cv.addEventListener('pointermove',e=>{if(!down)return;group.rotation.y+=(e.clientX-px)*0.01;group.rotation.x+=(e.clientY-py)*0.01;px=e.clientX;py=e.clientY;});
+  cv.addEventListener('wheel',e=>{e.preventDefault();zoom*=(e.deltaY>0?1.08:0.93);zoom=Math.max(0.5,Math.min(2.2,zoom));camera.position.z=7*zoom;},{passive:false});
+}
+function animate(){requestAnimationFrame(animate);
+  if(spin&&group)group.rotation.y+=0.006;
+  if(mode==='apf'&&apfActive){apfCur+=(apfTgt-apfCur)*0.06;
+    atomMeshes.forEach(m=>{const t=m.userData.baseR,touch=INFO[current].touchR;const r=t+(touch-t)*apfCur;m.scale.setScalar(r);});}
+  renderer.render(scene,camera);
+}
+init();
+</script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interactive Materials Science · Deborah Glosser</title>
+<meta name="description" content="Browser-based animations that make the quantitative foundations of materials science visible and manipulable.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1a2233; --navy:#1F3864; --teal:#1a7a62; --terra:#b1493c; --amber:#b0740c;
+    --bg:#eef1f6; --panel:#ffffff; --line:#d7dee8; --mut:#5f6a7a;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans);
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--navy)}
+  .wrap{max-width:1060px; margin:0 auto; padding:0 24px}
+
+  /* ---- hero ---- */
+  .hero{
+    position:relative; overflow:hidden;
+    padding:96px 0 64px;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(31,56,100,.14) 1px, transparent 0) 0 0/26px 26px,
+      linear-gradient(180deg,#f6f8fb 0%,var(--bg) 100%);
+    border-bottom:1px solid var(--line);
+  }
+  .hero .wrap{position:relative}
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--teal); margin:0 0 18px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:500; font-size:clamp(34px,5.4vw,58px);
+    line-height:1.04; letter-spacing:-.01em; margin:0 0 20px; color:var(--navy); max-width:15ch;
+  }
+  .lede{font-size:clamp(16px,2vw,19px); color:var(--ink); max-width:60ch; margin:0 0 22px}
+  .byline{font-family:var(--mono); font-size:13px; color:var(--mut); letter-spacing:.02em}
+  .byline a{color:var(--mut); text-decoration:underline; text-underline-offset:3px}
+
+  /* ---- section ---- */
+  section{padding:64px 0 8px}
+  .sec-head{display:flex; align-items:baseline; gap:16px; margin-bottom:8px}
+  .sec-tag{
+    font-family:var(--mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+    padding:4px 9px; border-radius:5px; white-space:nowrap;
+  }
+  .t-bond{color:var(--terra); background:rgba(177,73,60,.09)}
+  .t-cryst{color:var(--navy); background:rgba(31,56,100,.09)}
+  h2{
+    font-family:var(--serif); font-weight:500; font-size:clamp(22px,3vw,30px);
+    line-height:1.15; margin:0; color:var(--ink); letter-spacing:-.01em;
+  }
+  .sec-rule{height:1px; background:var(--line); margin:22px 0 34px}
+
+  /* ---- cards ---- */
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    overflow:hidden; margin-bottom:34px; box-shadow:0 1px 2px rgba(26,34,51,.03);
+  }
+  .card-head{padding:22px 24px 18px; border-bottom:1px solid var(--line)}
+  .card-top{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:10px}
+  .num{font-family:var(--mono); font-size:13px; color:var(--mut)}
+  .chip{
+    font-family:var(--mono); font-size:11.5px; letter-spacing:.04em;
+    padding:3px 8px; border-radius:20px; border:1px solid var(--line); color:var(--mut);
+  }
+  h3{font-family:var(--serif); font-weight:600; font-size:20px; margin:0 0 8px; color:var(--navy)}
+  .desc{margin:0; color:var(--ink); font-size:15.5px; max-width:72ch}
+  .frame{position:relative; background:#fafbfd}
+  iframe{display:block; width:100%; height:580px; border:0}
+  .card-foot{
+    display:flex; justify-content:flex-end; padding:12px 24px;
+    border-top:1px solid var(--line); background:#fafbfd;
+  }
+  .open{
+    font-family:var(--mono); font-size:12.5px; letter-spacing:.03em; text-decoration:none;
+    color:var(--navy); padding:6px 12px; border:1px solid var(--line); border-radius:6px;
+    transition:background .15s ease, border-color .15s ease;
+  }
+  .open:hover,.open:focus-visible{background:rgba(31,56,100,.06); border-color:var(--navy)}
+
+  a:focus-visible,.open:focus-visible{outline:2px solid var(--teal); outline-offset:2px}
+
+  /* ---- footer ---- */
+  footer{
+    margin-top:36px; padding:40px 0 64px; border-top:1px solid var(--line);
+    background:#f6f8fb;
+  }
+  .foot-grid{display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; align-items:baseline}
+  .foot-note{font-size:14px; color:var(--mut); max-width:56ch}
+  .foot-meta{font-family:var(--mono); font-size:12.5px; color:var(--mut)}
+
+  @media (max-width:640px){
+    .hero{padding:72px 0 48px}
+    iframe{height:520px}
+    section{padding:48px 0 4px}
+  }
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Materials Science &middot; ENGR 170</p>
+    <h1>Seeing the physics behind the properties</h1>
+    <p class="lede">A set of browser-based animations I built for teaching materials science. Each one takes a quantitative result &mdash; a melting point, a modulus, a diffraction condition &mdash; and makes it something you can drag, rotate, and reason through, rather than take on faith.</p>
+    <p class="byline">Deborah Glosser &middot; <a href="https://engineeringdesign.wwu.edu/people/glosser">Western Washington University</a></p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="bonding" aria-labelledby="bonding-h">
+    <div class="sec-head">
+      <span class="sec-tag t-bond">Interatomic bonding</span>
+    </div>
+    <h2 id="bonding-h">From a single potential well to a table of properties</h2>
+    <div class="sec-rule"></div>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">01</span>
+          <span class="chip">U(r) &middot; Morse potential</span>
+        </div>
+        <h3>The interatomic potential well</h3>
+        <p class="desc">Drag the well's depth, spacing, and curvature and watch one interatomic potential set three macroscopic properties at once: bond energy &rarr; melting temperature, equilibrium separation &rarr; atomic size, and curvature at the bottom &rarr; elastic modulus.</p>
+      </div>
+      <div class="frame"><iframe src="potential-well.html" loading="lazy" title="Interactive interatomic potential well U(r)"></iframe></div>
+      <div class="card-foot"><a class="open" href="potential-well.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">02</span>
+          <span class="chip">ionic &middot; covalent &middot; metallic</span>
+        </div>
+        <h3>Same shear, opposite outcomes</h3>
+        <p class="desc">Apply the same shear to ionic, covalent, and metallic bonds and get cleavage, brittle fracture, or ductile slip &mdash; a demonstration that bonding <em>character</em>, not just bond strength, decides how a material fails.</p>
+      </div>
+      <div class="frame"><iframe src="shear-outcomes.html" loading="lazy" title="Same shear applied to ionic, covalent, and metallic bonds"></iframe></div>
+      <div class="card-foot"><a class="open" href="shear-outcomes.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">03</span>
+          <span class="chip">property table, derived</span>
+        </div>
+        <h3>One bonding physics, four readouts</h3>
+        <p class="desc">A synthesis figure: melting point, stiffness, conductivity, and ductility all trace back to just two roots &mdash; the shape of the energy well and the behavior of the electrons. The property table stops being a list to memorize and becomes something derived.</p>
+      </div>
+      <div class="frame"><iframe src="property-table.html" loading="lazy" title="The property table derived from bonding physics"></iframe></div>
+      <div class="card-foot"><a class="open" href="property-table.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+  </section>
+
+  <section id="crystal" aria-labelledby="crystal-h">
+    <div class="sec-head">
+      <span class="sec-tag t-cryst">Crystal structure &amp; diffraction</span>
+    </div>
+    <h2 id="crystal-h">Lattices, the geometry within them, and how we measure them</h2>
+    <div class="sec-rule"></div>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">04</span>
+          <span class="chip">FCC &middot; BCC &middot; HCP</span>
+        </div>
+        <h3>Crystal structures of metals</h3>
+        <p class="desc">FCC, BCC, and HCP unit cells you can rotate and inflate to their touching radius, with live atom counts and atomic packing factors updating as you go.</p>
+      </div>
+      <div class="frame"><iframe src="crystal-structures.html" loading="lazy" title="FCC, BCC, and HCP crystal structures"></iframe></div>
+      <div class="card-foot"><a class="open" href="crystal-structures.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">05</span>
+          <span class="chip">a&ndash;R geometry</span>
+        </div>
+        <h3>Deriving the a&ndash;R relation</h3>
+        <p class="desc">Where <em>a</em> = 2&radic;2&thinsp;R &mdash; and its BCC and HCP cousins &mdash; actually comes from: the geometry of atoms touching along the close-packed direction, built up one step at a time instead of handed over as a formula.</p>
+      </div>
+      <div class="frame"><iframe src="a-R-relation.html" loading="lazy" title="Deriving the a-R relation for FCC, BCC, HCP"></iframe></div>
+      <div class="card-foot"><a class="open" href="a-R-relation.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">06</span>
+          <span class="chip">2d&middot;sin&theta; = n&lambda;</span>
+        </div>
+        <h3>Bragg's law, from scratch</h3>
+        <p class="desc">Where 2d&middot;sin&theta; comes from: the extra path length between rays reflecting off adjacent lattice planes, shown as the interference condition that turns a diffraction pattern into a measurement of spacing.</p>
+      </div>
+      <div class="frame"><iframe src="bragg-law.html" loading="lazy" title="Derivation of Bragg's law"></iframe></div>
+      <div class="card-foot"><a class="open" href="bragg-law.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <p class="foot-note">Built as teaching tools for ENGR 170, Introduction to Materials Science &amp; Engineering. Each animation runs entirely in the browser &mdash; no install, no plugins.</p>
+    <p class="foot-meta">Deborah Glosser &middot; WWU</p>
+  </div>
+</footer>
+
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Interatomic potential well U(r) — Morse</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--gold:#F2B705;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  #app{display:flex;flex-direction:column;height:100vh;}
+  header{padding:11px 20px 8px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:20px;font-weight:700;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:8px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:14px;font-weight:600;color:var(--navy);min-height:38px;display:flex;align-items:center;}
+  #cap .beat{display:inline-block;background:var(--navy);color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:9px;}
+  #main{flex:1;min-height:0;display:flex;}
+  #left{flex:1;min-width:0;position:relative;}
+  canvas{display:block;width:100%;height:100%;}
+  #side{width:270px;border-left:1px solid var(--line);background:#fff;padding:14px;display:flex;flex-direction:column;gap:11px;overflow:auto;}
+  .card{background:var(--bg);border-radius:10px;padding:9px 11px;border-left:4px solid var(--steel);}
+  .card.d{border-color:var(--terra);} .card.r{border-color:var(--steel);} .card.k{border-color:var(--teal);}
+  .card .lab{font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--mut);text-transform:uppercase;}
+  .card .val{font-family:Cambria,serif;font-size:18px;font-weight:700;color:var(--navy);margin-top:1px;}
+  .card .map{font-size:11.5px;color:var(--mut);margin-top:1px;}
+  .bar{height:8px;background:var(--line);border-radius:5px;margin-top:5px;overflow:hidden;}
+  .bar > i{display:block;height:100%;width:0;border-radius:5px;}
+  .ctl{display:flex;flex-direction:column;gap:2px;}
+  .ctl .top{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--navy);}
+  .ctl .top span{color:var(--mut);font-weight:600;font-family:Cambria,serif;}
+  input[type=range]{width:100%;}
+  .btns{display:flex;gap:6px;flex-wrap:wrap;}
+  button{font-family:inherit;font-size:13px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:7px 12px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  button.pri{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .hint{font-size:11px;color:var(--mut);font-style:italic;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>The interatomic potential well &mdash; U(r)</h1>
+    <p>Morse potential &middot; three independent knobs, three material properties &middot; ENGR 170</p>
+  </header>
+  <div id="cap"></div>
+  <div id="main">
+    <div id="left"><canvas id="cv"></canvas></div>
+    <div id="side">
+      <div class="btns">
+        <button class="pri" id="play">▶ Play</button>
+        <button id="step">⏭ Step</button>
+        <button id="reset">↺ Reset</button>
+      </div>
+      <div class="hint">Or drag a slider to explore one knob at a time.</div>
+      <div class="ctl"><div class="top"><label>Well depth D</label><span id="dO">4.60 eV</span></div><input id="dS" type="range" min="1.0" max="7.0" step="0.05" value="4.6"></div>
+      <div class="ctl"><div class="top"><label>Equilibrium sep. r₀</label><span id="rO">0.280 nm</span></div><input id="rS" type="range" min="0.22" max="0.40" step="0.002" value="0.28"></div>
+      <div class="ctl"><div class="top"><label>Width a (curvature)</label><span id="aO">18.0 /nm</span></div><input id="aS" type="range" min="8" max="30" step="0.2" value="18"></div>
+      <div class="card d"><div class="lab">Well depth D (bond energy)</div><div class="val" id="vD">4.60 eV</div><div class="map">well bottom at E₀ = −D → melting T</div><div class="bar"><i id="bD" style="background:var(--terra)"></i></div></div>
+      <div class="card r"><div class="lab">Equilibrium separation <span style="text-transform:none">r₀</span></div><div class="val" id="vR">0.280 nm</div><div class="map">→ effective atomic size</div></div>
+      <div class="card k"><div class="lab">Curvature <span style="text-transform:none;font-weight:700">U″(r₀) = 2·D·a²</span></div><div class="val" id="vK">2981 eV/nm²</div><div class="map">→ elastic modulus E (stiffness)</div><div class="bar"><i id="bK" style="background:var(--teal)"></i></div></div>
+    </div>
+  </div>
+</div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let D=4.6, r0=0.28, a=18.0;
+const R_MIN=0.20, R_MAX=0.66, U_TOP=2.0;
+function UB(){return Math.min(-5.4, -(D+0.55));}  // auto-extend axis so a deep well stays on screen
+// Morse potential and exact derivatives
+function U(r){const e=Math.exp(-a*(r-r0)); const b=1-e; return D*b*b - D;}
+function Upp(r){const e=Math.exp(-a*(r-r0)); return 2*D*a*a*e*(2*e-1);}   // exact second derivative
+function UppMin(){return 2*D*a*a;}                                        // = U''(r0), exact
+// ranges for readout bars (relative)
+const D_MAX=7.0, K_MAX=2*7.0*30*30;
+// state
+let beat=0, playing=false, explore=false, clk=0, markerR=r0, aAuto=18, last=performance.now();
+const CAP={
+ 0:["", "Drag a slider, or press Play to walk through the three beats."],
+ 1:["BEAT 1","Atoms settle at r₀, where net energy is lowest."],
+ 2:["BEAT 2","Depth = bond energy → melting T.  Position = equilibrium separation r₀."],
+ 3:["BEAT 3","Same bond length, same bond energy — a sharper well is a stiffer bond → larger E."]
+};
+function setCap(){const c=document.getElementById('cap');const [b,txt]=CAP[beat];
+  c.innerHTML=(b?'<span class="beat">'+b+'</span>':'')+txt;}
+// layout
+let W,Hc,PL,PR,PT,PB;
+function resize(){const r=cv.getBoundingClientRect();cv.width=r.width*devicePixelRatio;cv.height=r.height*devicePixelRatio;
+  W=cv.width;Hc=cv.height;PL=72*devicePixelRatio;PR=W-210*devicePixelRatio;PT=64*devicePixelRatio;PB=Hc-54*devicePixelRatio;}
+window.addEventListener('resize',resize);
+function X(r){return PL+(r-R_MIN)/(R_MAX-R_MIN)*(PR-PL);}
+function Yv(u){return PT+(U_TOP-u)/(U_TOP-UB())*(PB-PT);}
+const dpr=()=>devicePixelRatio;
+function line(a1,b1,a2,b2,col,w,dash){ctx.beginPath();ctx.setLineDash(dash||[]);ctx.moveTo(a1,b1);ctx.lineTo(a2,b2);ctx.strokeStyle=col;ctx.lineWidth=w*dpr();ctx.stroke();ctx.setLineDash([]);}
+function text(s,x,y,col,sz,al,bold,serif){ctx.fillStyle=col;ctx.font=(bold?'bold ':'')+(sz*dpr())+'px '+(serif?'Cambria,Georgia,serif':'Calibri,sans-serif');ctx.textAlign=al||'left';ctx.textBaseline='middle';ctx.fillText(s,x,y);}
+
+function draw(){
+  ctx.clearRect(0,0,W,Hc);
+  // axes
+  line(PL,PT-10*dpr(),PL,PB,"#8A93A0",1.2); line(PL,PB,PR+8*dpr(),PB,"#8A93A0",1.2);
+  // zero energy line
+  const y0=Yv(0); line(PL,y0,PR,y0,"#C7CFDA",1,[5,4]); text("U = 0  ·  two free atoms, far apart",PL+10*dpr(),y0-9*dpr(),"#8A93A0",10.5,'left');
+  text("U(r) = potential energy of two atoms vs their separation r",PL,18*dpr(),"#6B7480",10.5,'left',true);
+  // axis ticks/labels
+  for(let u=0;u>=Math.ceil(UB());u--){const y=Yv(u); text(u.toString(),PL-8*dpr(),y,"#8A93A0",10,'right');}
+  text("U (eV)",PL-8*dpr(),PT-24*dpr(),"#3F4A5A",11,'left',true);
+  for(let r=0.25;r<=0.65;r+=0.10){const x=X(r); line(x,PB,x,PB+5*dpr(),"#8A93A0",1); text(r.toFixed(2),x,PB+16*dpr(),"#8A93A0",10,'center');}
+  text("r (nm)",PR-4*dpr(),PB+34*dpr(),"#3F4A5A",11,'right',true);
+  text("distance between atom centers",PR-4*dpr(),PB+47*dpr(),"#8A93A0",9.5,'right');
+  // curve
+  ctx.beginPath();let started=false;
+  for(let px=PL;px<=PR;px+=1){const r=R_MIN+(px-PL)/(PR-PL)*(R_MAX-R_MIN);let u=U(r);if(u>U_TOP)u=U_TOP+ (u>U_TOP?0:0);
+    const y=Yv(Math.min(u,U_TOP)); if(u>U_TOP+0.001){started=false;continue;} if(!started){ctx.moveTo(px,y);started=true;}else ctx.lineTo(px,y);}
+  ctx.strokeStyle="#2E5496";ctx.lineWidth=3*dpr();ctx.lineJoin='round';ctx.stroke();
+  // beat-2 overlays
+  if(beat>=2 || explore){
+    const xr=X(r0), ymin=Yv(-D);
+    line(xr,PT-6*dpr(),xr,ymin,"#1F3864",1.4,[6,4]);
+    text("equilibrium separation r₀",xr,PT-20*dpr(),"#1F3864",11,'center',true);
+    text("(effective atomic size)",xr,PT-6*dpr(),"#6B7480",9.5,'center');
+    // depth bracket at left
+    const xb=X(R_MIN+0.02);
+    line(xb,y0,xb,ymin,"#B85042",2); line(xb-5*dpr(),y0,xb+5*dpr(),y0,"#B85042",2); line(xb-5*dpr(),ymin,xb+5*dpr(),ymin,"#B85042",2);
+    text("well depth D",xb+9*dpr(),(y0+ymin)/2-8*dpr(),"#B85042",10.5,'left',true);
+    text("= bond energy",xb+9*dpr(),(y0+ymin)/2+7*dpr(),"#B85042",10,'left');
+    text("→ melting T",xb+9*dpr(),(y0+ymin)/2+22*dpr(),"#6B7480",9.5,'left');
+    text("E₀ = −D",xr+8*dpr(),ymin+2*dpr(),"#1F3864",10.5,'left',true);
+    // thermometer (right panel)
+    therm();
+  }
+  if(beat>=3 || explore) spring();
+  // atoms + marker
+  drawAtomsMarker();
+  updateReadouts();
+}
+function therm(){
+  const cx=PR+55*dpr(), top=PT+8*dpr(), bot=PB-70*dpr(), w=13*dpr();
+  ctx.strokeStyle="#8A93A0";ctx.lineWidth=1.5*dpr();
+  ctx.beginPath();ctx.roundRect(cx-w/2,top,w,bot-top,w/2);ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,bot+10*dpr(),11*dpr(),0,7);ctx.fillStyle="#B85042";ctx.fill();
+  const f=Math.min(1,D/D_MAX); const fh=(bot-top)*f;
+  ctx.fillStyle="#B85042";ctx.beginPath();ctx.roundRect(cx-w/2+2*dpr(),bot-fh,w-4*dpr(),fh,w/2);ctx.fill();
+  text("T_m ∝ D",cx,top-14*dpr(),"#B85042",10.5,'center',true);
+}
+function spring(){
+  const cx=PR+150*dpr(), top=PT+20*dpr(), restH=(PB-PT)*0.5;
+  const k=UppMin(); const kRef=2*4.6*18*18; const comp=Math.min(restH*0.86, restH*0.42*(kRef/k)); // constant force F → x=F/k
+  const H=restH-comp;
+  // fixed ceiling
+  line(cx-26*dpr(),top,cx+26*dpr(),top,"#8A93A0",3);
+  // spring coils
+  const coils=7, seg=H/coils; ctx.beginPath();ctx.moveTo(cx,top);
+  for(let i=0;i<coils;i++){const y=top+seg*(i+0.5);const dx=(i%2?1:-1)*18*dpr();ctx.lineTo(cx+dx,y);} ctx.lineTo(cx,top+H);
+  ctx.strokeStyle="#1F7A63";ctx.lineWidth=2.6*dpr();ctx.lineJoin='round';ctx.stroke();
+  // platform
+  line(cx-28*dpr(),top+H,cx+28*dpr(),top+H,"#3F4A5A",4);
+  // constant force arrow (same every time)
+  const ay=top+H+10*dpr();
+  ctx.strokeStyle="#E8890C";ctx.lineWidth=3*dpr();ctx.beginPath();ctx.moveTo(cx,ay);ctx.lineTo(cx,ay+34*dpr());ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-6*dpr(),ay+26*dpr());ctx.lineTo(cx,ay+36*dpr());ctx.lineTo(cx+6*dpr(),ay+26*dpr());ctx.closePath();ctx.fillStyle="#E8890C";ctx.fill();
+  text("constant F",cx,ay+50*dpr(),"#E8890C",10,'center',true);
+  text("stiffer → less",cx,top-26*dpr(),"#1F7A63",10,'center',true);
+  text("compression",cx,top-13*dpr(),"#1F7A63",10,'center');
+}
+function drawAtomsMarker(){
+  const r = (beat===1&&!explore)? markerR : r0;
+  // marker on curve
+  const mx=X(r), my=Yv(Math.min(U(r),U_TOP));
+  // atoms strip centered at plot center
+  const xC=(PL+PR)/2, ys=PT-42*dpr(), rad=14*dpr(), sep=r*100*dpr();
+  line(xC,ys,mx,my,"#B85042",1.2,[4,3]);
+  for(const sgn of [-1,1]){const ax=xC+sgn*sep/2;
+    ctx.beginPath();ctx.arc(ax,ys,rad,0,7);ctx.fillStyle="#F2B705";ctx.strokeStyle="#6B4E00";ctx.lineWidth=1.4*dpr();ctx.fill();ctx.stroke();}
+  ctx.beginPath();ctx.arc(mx,my,7*dpr(),0,7);ctx.fillStyle="#B85042";ctx.strokeStyle="#7A2E24";ctx.lineWidth=1.5*dpr();ctx.fill();ctx.stroke();
+}
+function updateReadouts(){
+  document.getElementById('dO').textContent=D.toFixed(2)+" eV";
+  document.getElementById('rO').textContent=r0.toFixed(3)+" nm";
+  document.getElementById('aO').textContent=a.toFixed(1)+" /nm";
+  document.getElementById('dS').value=D; document.getElementById('rS').value=r0; document.getElementById('aS').value=a;
+  document.getElementById('vD').textContent=D.toFixed(2)+" eV";
+  document.getElementById('vR').textContent=r0.toFixed(3)+" nm";
+  const k=UppMin(); document.getElementById('vK').textContent=Math.round(k).toLocaleString()+" eV/nm²";
+  document.getElementById('bD').style.width=(Math.min(1,D/D_MAX)*100)+"%";
+  document.getElementById('bK').style.width=(Math.min(1,k/K_MAX)*100)+"%";
+}
+// ---- interaction ----
+document.getElementById('dS').addEventListener('input',e=>{explore=true;playing=false;beat=Math.max(beat,0);D=+e.target.value;setCap();});
+document.getElementById('rS').addEventListener('input',e=>{explore=true;playing=false;r0=+e.target.value;setCap();});
+document.getElementById('aS').addEventListener('input',e=>{explore=true;playing=false;a=+e.target.value;setCap();});
+document.getElementById('play').onclick=()=>{explore=false;playing=true;beat=1;clk=0;D=4.6;r0=0.28;a=18;markerR=0.235;setCap();};
+document.getElementById('step').onclick=()=>{explore=false;playing=false;beat=Math.min(3,beat+1);clk=0;if(beat===1){D=4.6;r0=0.28;a=18;markerR=0.235;}setCap();};
+document.getElementById('reset').onclick=()=>{explore=false;playing=false;beat=0;clk=0;D=4.6;r0=0.28;a=18;markerR=r0;setCap();};
+// ---- animation ----
+function tick(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(!explore){
+    if(beat===1){clk+=dt; const A=(0.235-0.28); markerR=0.28+A*Math.exp(-3.2*clk)*Math.cos(7*clk);
+      if(clk>2.6){markerR=0.28; if(playing){beat=2;clk=0;setCap();}}}
+    else if(beat===2){clk+=dt; if(clk>2.4&&playing){beat=3;clk=0;setCap();}}
+    else if(beat===3){clk+=dt; aAuto=19+9*Math.sin(clk*1.4); a=aAuto;}
+  }
+  draw(); requestAnimationFrame(tick);
+}
+resize(); setCap(); requestAnimationFrame(tick);
+</script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>One bonding physics, four readouts</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--gold:#F2B705;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  #app{display:flex;flex-direction:column;height:100vh;}
+  header{padding:11px 20px 8px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;font-weight:700;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #bar{display:flex;gap:9px;align-items:center;padding:9px 18px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  button{font-family:inherit;font-size:13.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:7px 13px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);} button.pri{background:var(--navy);color:#fff;border-color:var(--navy);}
+  #which{margin-left:6px;font-size:12px;color:var(--mut);}
+  #cvwrap{flex:1;min-height:0;position:relative;}
+  canvas{display:block;width:100%;height:100%;}
+  #pay{padding:9px 20px;background:#fff;border-top:1px solid var(--line);font-size:13.5px;color:var(--navy);font-weight:600;line-height:1.4;}
+  #pay b{color:var(--terra);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>The property table is one bonding physics, seen four ways</h1>
+    <p>Each column is a readout of the energy well or the electrons &middot; ENGR 170</p>
+  </header>
+  <div id="bar">
+    <button id="prev">‹ Prev</button>
+    <button class="pri" id="next">Next connection ›</button>
+    <button id="all">Show all</button>
+    <button id="reset">↺ Reset</button>
+    <span id="which">0 / 4</span>
+  </div>
+  <div id="cvwrap"><canvas id="cv"></canvas></div>
+  <div id="pay"></div>
+</div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const K={navy:"#1F3864",steel:"#2E5496",terra:"#B85042",teal:"#1F7A63",amber:"#E8890C",gold:"#F2B705",
+  ink:"#21262E",mut:"#6B7480",line:"#C7CFDA",white:"#fff",bg:"#F1F4F8"};
+let W,Hc,dpr,t=0;
+let shown=0;                       // number of connectors shown (0..4); 4 = all
+const COLS=["Bond","Melting T","Modulus E","Conductivity","Ductility"];
+const ROWS=[
+ ["Ionic","high","high","insulator","brittle"],
+ ["Covalent","very high","very high","insulator","brittle"],
+ ["Metallic","mod–high","mod–high","conductor","ductile"]];
+// connector meta: source visual, target column index, color, label
+const CONN=[
+ {col:1,color:K.terra,label:"well depth D → melting T",short:"depth D",src:"depth"},
+ {col:2,color:K.teal, label:"curvature 2Da² → modulus E",short:"curvature 2Da²",src:"curv"},
+ {col:3,color:K.amber,label:"electron mobility → conductivity",short:"e⁻ mobility",src:"elec"},
+ {col:4,color:K.steel,label:"shear response → ductility",short:"shear response",src:"shear"}];
+const PAY='Two columns read off the <b>shape of the well</b> (depth→T<sub>m</sub>, curvature→E); two read off <b>what the electrons do</b> (mobility→conductivity, shear response→ductility). The whole table is one bonding physics, seen four ways.';
+function resize(){dpr=Math.min(devicePixelRatio,2);cv.width=cv.clientWidth*dpr;cv.height=cv.clientHeight*dpr;W=cv.width;Hc=cv.height;}
+window.addEventListener('resize',resize);
+function txt(s,x,y,col,sz,al,bold,serif){ctx.fillStyle=col;ctx.font=(bold?'bold ':'')+(sz*dpr)+'px '+(serif?'Cambria,serif':'Calibri,sans-serif');ctx.textAlign=al||'left';ctx.textBaseline='middle';ctx.fillText(s,x,y);}
+function rrect(x,y,w,h,r,fill,stroke,lw){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=(lw||1)*dpr;ctx.stroke();}}
+
+// ----- table geometry -----
+let TB;
+function tableGeom(){
+  const x0=24*dpr, y0=132*dpr, tw=W*0.50-24*dpr, rh=(Hc-y0-40*dpr)/4;
+  const cwv=[0.20,0.20,0.20,0.20,0.20]; let cw=cwv.map(v=>v*tw);
+  const xs=[]; let cx=x0; for(let i=0;i<5;i++){xs.push(cx);cx+=cw[i];}
+  return {x0,y0,tw,rh:Math.min(rh,72*dpr),cw,xs,h:0.55*Math.min(rh,72*dpr)};
+}
+function colCenter(ci){const g=TB;return g.xs[ci]+g.cw[ci]/2;}
+function drawTable(){
+  const g=TB; const hh=48*dpr;
+  // header
+  let cx=g.x0;
+  for(let i=0;i<5;i++){ const active=(shown>0 && CONN.slice(0,shown).some(c=>c.col===i));
+    rrect(g.xs[i]+1*dpr,g.y0,g.cw[i]-2*dpr,hh,4*dpr, active?colOf(i):K.navy, null);
+    txt(COLS[i],g.xs[i]+g.cw[i]/2,g.y0+hh/2,K.white,12.5,'center',true);
+    cx+=g.cw[i]; }
+  // rows
+  for(let r=0;r<3;r++){ const ry=g.y0+hh+r*(g.rh);
+    for(let i=0;i<5;i++){ const active=(shown>0 && CONN.slice(0,shown).some(c=>c.col===i));
+      rrect(g.xs[i]+1*dpr,ry+1*dpr,g.cw[i]-2*dpr,g.rh-2*dpr,3*dpr, active&&i>0? tint(i):(r%2?K.bg:K.white), K.line,0.8);
+      const v=ROWS[r][i];
+      txt(v,g.xs[i]+g.cw[i]/2,ry+g.rh/2, i===0?K.navy:(active&&i>0?colOf(i):K.ink), i===0?13:12, 'center', i===0);
+    }
+  }
+}
+function colOf(ci){const c=CONN.find(c=>c.col===ci);return c?c.color:K.navy;}
+function tint(ci){const c=CONN.find(c=>c.col===ci);if(!c)return K.white;
+  const map={ "#B85042":"#FBE7E2","#1F7A63":"#E1F1EB","#E8890C":"#FBEBD5","#2E5496":"#E3ECF7"};return map[c.color]||K.white;}
+
+// ----- right visuals -----
+function wellBox(){ return {x:W*0.55, y:96*dpr, w:W*0.42, h:(Hc-140*dpr)*0.44}; }
+function elecBox(){ const wb=wellBox(); return {x:wb.x, y:wb.y+wb.h+22*dpr, w:wb.w*0.52, h:(Hc-140*dpr)*0.40}; }
+function shearBox(){ const wb=wellBox(),eb=elecBox(); return {x:eb.x+eb.w+16*dpr, y:eb.y, w:wb.w-eb.w-16*dpr, h:eb.h}; }
+
+let Danim=4.6, Aanim=18;
+function morse(r,D,a){const e=Math.exp(-a*(r-0.28));return D*(1-e)*(1-e)-D;}
+function drawWell(){
+  const b=wellBox(); rrect(b.x,b.y,b.w,b.h,10*dpr,K.white,K.line,1.2);
+  txt("interatomic energy well  U(r)",b.x+b.w/2,b.y+16*dpr,K.navy,12,'center',true);
+  const pl=b.x+40*dpr, pr=b.x+b.w-20*dpr, pt=b.y+30*dpr, pb=b.y+b.h-26*dpr;
+  const D=Danim,a=Aanim, Umin=-(D+0.4);
+  const X=r=>pl+(r-0.20)/(0.55-0.20)*(pr-pl), Y=u=>pt+(0.6-u)/(0.6-Umin)*(pb-pt);
+  // zero line
+  ctx.setLineDash([4*dpr,3*dpr]);ctx.beginPath();ctx.moveTo(pl,Y(0));ctx.lineTo(pr,Y(0));ctx.strokeStyle=K.line;ctx.lineWidth=1*dpr;ctx.stroke();ctx.setLineDash([]);
+  // curve
+  ctx.beginPath();let st=false;for(let px=pl;px<=pr;px++){const r=0.20+(px-pl)/(pr-pl)*0.35;let u=morse(r,D,a);if(u>0.6){st=false;continue;}const y=Y(u);if(!st){ctx.moveTo(px,y);st=true;}else ctx.lineTo(px,y);}
+  ctx.strokeStyle=K.steel;ctx.lineWidth=3*dpr;ctx.lineJoin='round';ctx.stroke();
+  // r0 dashed + depth bracket
+  const xr=X(0.28), ymin=Y(-D);
+  ctx.setLineDash([5*dpr,3*dpr]);ctx.beginPath();ctx.moveTo(xr,pt);ctx.lineTo(xr,ymin);ctx.strokeStyle=K.navy;ctx.lineWidth=1.2*dpr;ctx.stroke();ctx.setLineDash([]);
+  txt("r₀",xr,pt-2*dpr,K.navy,11,'center',true);
+  // depth marker
+  const active1=shown>=1;
+  ctx.strokeStyle=active1?K.terra:K.mut;ctx.lineWidth=2*dpr;ctx.beginPath();ctx.moveTo(pl+6*dpr,Y(0));ctx.lineTo(pl+6*dpr,ymin);ctx.stroke();
+  txt("D",pl+13*dpr,(Y(0)+ymin)/2,active1?K.terra:K.mut,12,'left',true);
+  // curvature marker (a small arc hugging the bottom)
+  const active2=shown>=2;
+  ctx.strokeStyle=active2?K.teal:K.mut;ctx.lineWidth=2.4*dpr;ctx.beginPath();
+  for(let px=xr-26*dpr;px<=xr+26*dpr;px+=2){const r=0.20+(px-pl)/(pr-pl)*0.35;ctx.lineTo(px,Y(morse(r,D,a)));}ctx.stroke();
+  if(active2)txt("U″(r₀)=2Da² = "+Math.round(2*D*a*a).toLocaleString(),xr,ymin+16*dpr,K.teal,10.5,'center',true);
+  // anchors for connectors
+  wellDepthAnchor=[pl+6*dpr,(Y(0)+ymin)/2]; wellCurvAnchor=[xr,ymin];
+}
+let wellDepthAnchor=[0,0],wellCurvAnchor=[0,0],elecAnchor=[0,0],shearAnchor=[0,0];
+
+let seaE=[]; function initSea(b){seaE=[];for(let i=0;i<16;i++)seaE.push({x:b.x+20*dpr+Math.random()*(b.w-40*dpr),y:b.y+40*dpr+Math.random()*(b.h-60*dpr),vx:(Math.random()-.5)*.4*dpr,vy:(Math.random()-.5)*.4*dpr});}
+function drawElec(){
+  const b=elecBox(); rrect(b.x,b.y,b.w,b.h,10*dpr,K.white,K.line,1.2);
+  txt("what the electrons do",b.x+b.w/2,b.y+15*dpr,K.navy,11.5,'center',true);
+  const active3=shown>=3;
+  // localized (left half)
+  const lh={x:b.x+8*dpr,y:b.y+26*dpr,w:b.w/2-12*dpr,h:b.h-58*dpr};
+  txt("localized",lh.x+lh.w/2,b.y+b.h-14*dpr,K.mut,9.5,'center',true);
+  for(let i=0;i<2;i++)for(let j=0;j<2;j++){const cx=lh.x+lh.w*(0.3+0.4*i),cy=lh.y+lh.h*(0.3+0.4*j);
+    ctx.beginPath();ctx.arc(cx,cy,7*dpr,0,7);ctx.fillStyle=K.steel;ctx.fill();
+    ctx.beginPath();ctx.arc(cx+9*dpr,cy,2.4*dpr,0,7);ctx.fillStyle=K.teal;ctx.fill();}
+  // sea (right half)
+  const sh={x:b.x+b.w/2+4*dpr,y:b.y+26*dpr,w:b.w/2-12*dpr,h:b.h-58*dpr};
+  txt("delocalized sea",sh.x+sh.w/2,b.y+b.h-14*dpr,K.mut,9.5,'center',true);
+  if(!seaE.length||seaE[0].x<sh.x-5*dpr||seaE[0].x>sh.x+sh.w+5*dpr)initSea(sh);
+  for(let i=0;i<2;i++)for(let j=0;j<2;j++){const cx=sh.x+sh.w*(0.3+0.4*i),cy=sh.y+sh.h*(0.3+0.4*j);
+    ctx.beginPath();ctx.arc(cx,cy,7*dpr,0,7);ctx.fillStyle=K.navy;ctx.fill();txt("+",cx,cy,K.white,9,'center',true);}
+  for(const e of seaE){ctx.beginPath();ctx.arc(e.x,e.y,2.3*dpr,0,7);ctx.fillStyle=K.teal;ctx.fill();}
+  // field arrow when active
+  if(active3){ const ay=b.y+b.h+2*dpr; // draw inside bottom
+    txt("apply field  E →",b.x+b.w/2,b.y+b.h-1*dpr,K.amber,9.5,'center',true);
+  }
+  elecAnchor=[b.x+b.w-6*dpr,b.y+b.h*0.5];
+}
+function planeAtoms(px,py,pw,ph,kind){ // draw a row of 3 atoms inside a plane
+  const ys=py+ph/2;
+  for(let i=0;i<3;i++){ const x=px+pw*(0.25+0.25*i);
+    let col=K.navy; if(kind==="ionic") col=(i%2? K.amber:K.steel); else if(kind==="cov") col="#5A6472"; else col=K.navy;
+    ctx.beginPath();ctx.arc(x,ys,Math.min(ph*0.32,pw*0.11),0,7);ctx.fillStyle=col;ctx.fill();
+  }
+}
+function drawShear(){
+  const b=shearBox(); rrect(b.x,b.y,b.w,b.h,10*dpr,K.white,K.line,1.2);
+  txt("shear outcome",b.x+b.w/2,b.y+15*dpr,K.navy,11.5,'center',true);
+  const active4=shown>=4; const off=active4?12*dpr:0;
+  const items=[["Ionic",K.terra,"cleaves","ionic"],["Covalent",K.steel,"snaps","cov"],["Metallic",K.teal,"holds","met"]];
+  const iw=(b.w-14*dpr)/3;
+  items.forEach((it,k)=>{ const bx=b.x+7*dpr+k*iw, gw=iw-9*dpr, gx=bx+4*dpr;
+    const gy=b.y+34*dpr, gh=b.h-72*dpr, ph=gh*0.42;
+    const gap=(active4 && k<2)? 9*dpr : 3*dpr;
+    // top plane (offset when active) + bottom plane
+    rrect(gx+off, gy, gw, ph, 3*dpr, K.bg, it[1],1.3); planeAtoms(gx+off,gy,gw,ph,it[3]);
+    rrect(gx, gy+ph+gap, gw, ph, 3*dpr, K.bg, it[1],1.3); planeAtoms(gx,gy+ph+gap,gw,ph,it[3]);
+    if(active4 && k<2){ // crack/snap between the planes
+      ctx.strokeStyle=K.terra;ctx.lineWidth=2.6*dpr;ctx.setLineDash([4*dpr,3*dpr]);
+      ctx.beginPath();ctx.moveTo(gx,gy+ph+gap/2);ctx.lineTo(gx+gw+off,gy+ph+gap/2);ctx.stroke();ctx.setLineDash([]); }
+    if(active4 && k===2){ // metallic: intact contact line (no gap), teal
+      ctx.strokeStyle=K.teal;ctx.lineWidth=2*dpr;ctx.beginPath();ctx.moveTo(gx,gy+ph+gap/2);ctx.lineTo(gx+gw+off,gy+ph+gap/2);ctx.stroke(); }
+    txt(it[0],bx+iw/2,gy+2*ph+gap+16*dpr,it[1],10.5,'center',true);
+    txt(active4?it[2]:"—",bx+iw/2,gy+2*ph+gap+30*dpr,active4?it[1]:K.mut,10,'center',active4);
+  });
+  shearAnchor=[b.x+b.w-6*dpr,b.y+b.h*0.5];
+}
+// ----- connectors -----
+function connector(c,anchor,alpha){
+  const cx0=colCenter(c.col), cy0=TB.y0-4*dpr;
+  ctx.globalAlpha=alpha; ctx.strokeStyle=c.color; ctx.lineWidth=2.4*dpr;
+  ctx.beginPath();ctx.moveTo(anchor[0],anchor[1]);
+  const mx=(anchor[0]+cx0)/2;
+  ctx.bezierCurveTo(mx,anchor[1], mx,cy0-30*dpr, cx0,cy0);
+  ctx.stroke();
+  // arrowhead into column
+  ctx.beginPath();ctx.moveTo(cx0,cy0);ctx.lineTo(cx0-5*dpr,cy0-9*dpr);ctx.lineTo(cx0+5*dpr,cy0-9*dpr);ctx.closePath();ctx.fillStyle=c.color;ctx.fill();
+  // label chip in the lane ABOVE the target column header (clear of header text)
+  const lx=cx0, ly=TB.y0-20*dpr;
+  ctx.font='bold '+(11*dpr)+'px Calibri'; const wLab=ctx.measureText(c.short).width+14*dpr;
+  rrect(lx-wLab/2,ly-11*dpr,wLab,22*dpr,6*dpr,"#fff",c.color,1.5);
+  txt(c.short,lx,ly,c.color,11,'center',true);
+  ctx.globalAlpha=1;
+}
+function srcAnchor(src){return src==="depth"?wellDepthAnchor:src==="curv"?wellCurvAnchor:src==="elec"?elecAnchor:shearAnchor;}
+
+function draw(){
+  ctx.clearRect(0,0,W,Hc); TB=tableGeom();
+  drawTable(); drawWell(); drawElec(); drawShear();
+  for(let i=0;i<shown;i++){ connector(CONN[i], srcAnchor(CONN[i].src), 1); }
+  document.getElementById('which').textContent=shown+" / 4";
+  document.getElementById('pay').innerHTML = shown>=4 ? PAY :
+    (shown===0?'Step through the four connections, or “Show all”.':CONN[shown-1].label.replace(/→/g,'→')+'  —  '+
+      ["","deeper well → more thermal energy to separate atoms → higher melting T.",
+       "sharper well (larger 2Da²) → stiffer bond → larger elastic modulus E.",
+       "delocalized electron sea drifts in a field → conducts; localized electrons can’t → insulates.",
+       "ionic cleaves & covalent snaps (brittle); metallic sea lets cores slide (ductile)."][shown]);
+}
+function tick(){ t+=0.016;
+  if(shown>=1){ Danim=4.6+ (shown===1? 1.6*Math.sin(t*1.6):0); }  else Danim=4.6;
+  if(shown>=2){ Aanim=18 + (shown===2? 7*Math.sin(t*1.5):0); } else Aanim=18;
+  // sea drift (accelerate in field when step3 active)
+  const sh=shearBox(); const eb=elecBox(); const shb={x:eb.x+eb.w/2+4*dpr};
+  for(const e of seaE){ const bias=(shown>=3)?0.35*dpr:0; e.x+=e.vx+bias; e.y+=e.vy;
+    const lx=eb.x+eb.w/2+4*dpr, rx=eb.x+eb.w-8*dpr, ty=eb.y+26*dpr, by=eb.y+eb.h-32*dpr;
+    if(e.x<lx){e.x=rx;} if(e.x>rx){e.x=lx;} if(e.y<ty||e.y>by)e.vy*=-1;
+    if(Math.random()<0.02){e.vx=(Math.random()-.5)*.4*dpr;e.vy=(Math.random()-.5)*.4*dpr;} }
+  draw(); requestAnimationFrame(tick);
+}
+document.getElementById('next').onclick=()=>{shown=Math.min(4,shown+1);};
+document.getElementById('prev').onclick=()=>{shown=Math.max(0,shown-1);};
+document.getElementById('all').onclick=()=>{shown=4;};
+document.getElementById('reset').onclick=()=>{shown=0;};
+resize(); requestAnimationFrame(tick);
+</script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Same shear, opposite outcomes — ionic vs metallic vs covalent</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--gold:#F2B705;--red:#D8322B;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  #app{display:flex;flex-direction:column;height:100vh;}
+  header{padding:11px 20px 8px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;font-weight:700;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #bar{display:flex;gap:10px;align-items:center;padding:9px 18px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  button{font-family:inherit;font-size:14px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:8px 15px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  button.pri{background:var(--navy);color:#fff;border-color:var(--navy);}
+  #stage{display:flex;align-items:center;margin-left:auto;font-size:13.5px;font-weight:700;color:var(--navy);}
+  #stage .tag{background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:4px 10px;margin-left:8px;}
+  #cvwrap{flex:1;min-height:0;position:relative;}
+  canvas{display:block;width:100%;height:100%;}
+  .hint{font-size:12px;color:var(--mut);font-style:italic;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Same shear, opposite outcomes</h1>
+    <p>One displacement applied to three lattices &middot; why ionic &amp; covalent are brittle but metals are ductile &middot; ENGR 170</p>
+  </header>
+  <div id="bar">
+    <button class="pri" id="apply">▶ Apply shear</button>
+    <button id="step">⏭ Step</button>
+    <button id="reset">↺ Reset</button>
+    <span class="hint">same input → divergent outcome</span>
+    <span id="stage">Stage:<span class="tag" id="stageT">resting lattice</span></span>
+  </div>
+  <div id="cvwrap"><canvas id="cv"></canvas></div>
+</div>
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const C={pos:"#2E5496",neg:"#E8890C",core:"#1F3864",elec:"#1F7A63",cov:"#5A6472",bond:"#3F4A5A",
+  red:"#D8322B",ink:"#21262E",mut:"#6B7480",navy:"#1F3864",line:"#C7CFDA"};
+const NX=5, NY=4;           // grid; rows 0-1 = top block, rows 2-3 = bottom block
+let sCur=0, sTarget=0;      // shear (0..1 lattice spacings)
+let stepIdx=0; const STOPS=[0,0.5,0.9,1.0];
+let elec=[];                // electron sea
+let W,Hc,dpr;
+function resize(){dpr=Math.min(devicePixelRatio,2);cv.width=cv.clientWidth*dpr;cv.height=cv.clientHeight*dpr;W=cv.width;Hc=cv.height;initElec();}
+window.addEventListener('resize',resize);
+function panels(){const pw=W/3; return [{x:0,w:pw},{x:pw,w:pw},{x:2*pw,w:pw}];}
+function initElec(){elec=[];const p=panels()[1];const n=46;
+  for(let i=0;i<n;i++)elec.push({x:p.x+40*dpr+Math.random()*(p.w-80*dpr),y:120*dpr+Math.random()*(Hc-230*dpr),vx:(Math.random()-.5)*0.5*dpr,vy:(Math.random()-.5)*0.5*dpr});}
+// geometry: atom position for grid (i,j) with current shear + separation gap
+function geo(pl){const sp=Math.min(pl.w*0.15, (Hc-240*dpr)/5.2); const latW=(NX-1)*sp;
+  const ox=pl.x+(pl.w-latW)/2, oy=140*dpr; return {sp,ox,oy};}
+function atomXY(g,i,j,dx,gapUp){const top=(j<=1); const x=g.ox+i*g.sp+(top?dx:0); const y=g.oy+j*g.sp-(top?gapUp:0); return [x,y];}
+function circle(x,y,r,fill,stroke,lw){ctx.beginPath();ctx.arc(x,y,r,0,7);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=(lw||1.4)*dpr;ctx.stroke();}}
+function txt(s,x,y,col,sz,al,bold){ctx.fillStyle=col;ctx.font=(bold?'bold ':'')+(sz*dpr)+'px Calibri,sans-serif';ctx.textAlign=al||'center';ctx.textBaseline='middle';ctx.fillText(s,x,y);}
+function head(pl,t,col){txt(t,pl.x+pl.w/2,44*dpr,col,17,'center',true);}
+function cap(pl,lines,col){let y=Hc-70*dpr;lines.forEach((l,i)=>txt(l,pl.x+pl.w/2,y+i*17*dpr,i===0?col:C.mut,i===0?13:11.5,'center',i===0));}
+function planeLabel(pl,g){ctx.setLineDash([6*dpr,4*dpr]);ctx.beginPath();const y=g.oy+1.5*g.sp;ctx.moveTo(pl.x+18*dpr,y);ctx.lineTo(pl.x+pl.w-18*dpr,y);ctx.strokeStyle=C.line;ctx.lineWidth=1*dpr;ctx.stroke();ctx.setLineDash([]);}
+
+function drawIonic(pl){
+  const g=geo(pl); const dx=sCur*g.sp; const like=Math.max(0,(sCur-0.82)/0.18); const cleave=Math.max(0,(sCur-0.9)/0.1); const gapUp=cleave*g.sp*0.9;
+  head(pl,"IONIC  (NaCl)",C.steel);
+  planeLabel(pl,g);
+  // bonds hint: none drawn (nondirectional). draw faint attraction dots omitted.
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){
+    const charge=((i+j)%2===0)?1:-1; const [x,y]=atomXY(g,i,j,dx,gapUp);
+    const isInterface=(j===1||j===2);
+    let col=charge>0?C.pos:C.neg; let r=(charge>0?0.30:0.40)*g.sp;
+    // highlight like-charge confrontation on interface rows when sheared near 1
+    if(like>0 && isInterface){ ctx.globalAlpha=1; circle(x,y,r+5*dpr,null,C.red,2.2+like*2); }
+    circle(x,y,r,col,charge>0?"#16305c":"#7a4708",1.6);
+    txt(charge>0?"+":"–",x,y,"#fff",charge>0?13:15,'center',true);
+  }
+  // labels a couple ions
+  const g0=geo(pl); const [lx,ly]=atomXY(g0,0,3,0,0); txt("Na⁺",lx,ly+g0.sp*0.55,C.steel,11,'center',true);
+  const [cx,cy]=atomXY(g0,1,3,0,0); txt("Cl⁻",cx,cy+g0.sp*0.62,C.amber,11,'center',true);
+  // repulsion arrows + crack
+  if(like>0){
+    for(let i=0;i<NX;i++){ const [xt,yt]=atomXY(g,i,1,dx,gapUp); const [xb,yb]=atomXY(g,i,2,0,0);
+      arrow(xt,yt-6*dpr,xt,yt-6*dpr-16*dpr,C.red); arrow(xb,yb+6*dpr,xb,yb+6*dpr+16*dpr,C.red); }
+    txt("like charges meet → repel",pl.x+pl.w/2,g.oy+1.5*g.sp-cleave*20*dpr-14*dpr,C.red,12,'center',true);
+  }
+  cap(pl,["Shift → like charges meet → repel → cleaves","non-directional Coulomb bonds · BRITTLE"],C.terra);
+}
+function drawMetallic(pl){
+  const g=geo(pl); const dx=sCur*g.sp;
+  head(pl,"METALLIC",C.navy);
+  planeLabel(pl,g);
+  // electron sea (behind cores)
+  const p=pl; for(const e of elec){ circle(e.x,e.y,2.4*dpr,C.elec,null); }
+  // cores
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){ const [x,y]=atomXY(g,i,j,dx,0);
+    circle(x,y,0.32*g.sp,C.core,"#0f2247",1.6); txt("+",x,y,"#fff",13,'center',true); }
+  txt("ion cores (+) in an electron sea",pl.x+pl.w/2,g.oy-30*dpr,C.mut,11,'center');
+  cap(pl,["Shift → electron sea re-surrounds cores → deforms","non-directional, mobile sea · DUCTILE (holds)"],C.teal);
+}
+function drawCovalent(pl){
+  const g=geo(pl); const sp=g.sp; const strain=sCur; const snapped=sCur>0.5; const frac=Math.max(0,(sCur-0.5)/0.5); const gapUp=frac*sp*0.9;
+  const dx=sCur*sp;
+  head(pl,"COVALENT  (diamond / Si)",C.cov);
+  planeLabel(pl,g);
+  // bonds within blocks (horizontal + vertical) and across plane
+  ctx.lineWidth=3*dpr;
+  function bond(i1,j1,i2,j2){const t1=(j1<=1),t2=(j2<=1);const [x1,y1]=atomXY(g,i1,j1,t1?dx:0,t1?gapUp:0);const [x2,y2]=atomXY(g,i2,j2,t2?dx:0,t2?gapUp:0);
+    const cross=(t1!==t2);
+    if(cross && snapped) return; // broken
+    ctx.strokeStyle = cross ? (strain>0.32?C.red:"#8a6d3b") : C.bond;
+    ctx.lineWidth = (cross?3.4:3)*dpr;
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){ if(i<NX-1)bond(i,j,i+1,j); if(j<NY-1)bond(i,j,i,j+1); }
+  // atoms
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){ const t=(j<=1); const [x,y]=atomXY(g,i,j,t?dx:0,t?gapUp:0);
+    circle(x,y,0.30*sp,C.cov,"#3a4048",1.6); }
+  if(!snapped && strain>0.15) txt("directional bonds straining",pl.x+pl.w/2,g.oy+1.5*sp+4*dpr,C.red,12,'center',true);
+  if(snapped) txt("bonds snapped → fracture",pl.x+pl.w/2,g.oy+1.5*sp-gapUp-10*dpr,C.red,12,'center',true);
+  cap(pl,["Shift → rigid directional bonds stretch → snap","directionality (not charge) · BRITTLE"],C.cov);
+}
+function arrow(x1,y1,x2,y2,col){ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=2.4*dpr;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1);ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-7*dpr*Math.cos(a-0.5),y2-7*dpr*Math.sin(a-0.5));ctx.lineTo(x2-7*dpr*Math.cos(a+0.5),y2-7*dpr*Math.sin(a+0.5));ctx.closePath();ctx.fill();}
+
+function stageText(){ if(sCur<0.04)return "resting lattice";
+  if(sCur<0.55)return "shearing — same displacement on all three";
+  if(sCur<0.95)return "covalent bonds snap · ionic like-charges meet";
+  return "IONIC cleaves · COVALENT snaps · METALLIC holds"; }
+
+function draw(){
+  ctx.clearRect(0,0,W,Hc);
+  const P=panels();
+  // dividers
+  for(const x of [P[1].x,P[2].x]){ctx.strokeStyle=C.line;ctx.lineWidth=1*dpr;ctx.beginPath();ctx.moveTo(x,70*dpr);ctx.lineTo(x,Hc-90*dpr);ctx.stroke();}
+  drawIonic(P[0]); drawMetallic(P[1]); drawCovalent(P[2]);
+  document.getElementById('stageT').textContent=stageText();
+}
+function tick(){
+  // shear easing toward target
+  sCur += (sTarget-sCur)*0.06; if(Math.abs(sTarget-sCur)<0.001)sCur=sTarget;
+  // electron drift (metallic)
+  const p=panels()[1];
+  for(const e of elec){e.x+=e.vx;e.y+=e.vy;
+    if(e.x<p.x+22*dpr||e.x>p.x+p.w-22*dpr)e.vx*=-1;
+    if(e.y<110*dpr||e.y>Hc-120*dpr)e.vy*=-1;
+    if(Math.random()<0.02){e.vx=(Math.random()-.5)*0.5*dpr;e.vy=(Math.random()-.5)*0.5*dpr;}}
+  draw(); requestAnimationFrame(tick);
+}
+document.getElementById('apply').onclick=()=>{sTarget=1;stepIdx=STOPS.length-1;};
+document.getElementById('reset').onclick=()=>{sTarget=0;stepIdx=0;};
+document.getElementById('step').onclick=()=>{stepIdx=Math.min(STOPS.length-1,stepIdx+1);sTarget=STOPS[stepIdx];};
+resize(); requestAnimationFrame(tick);
+</script>
+</body>
+</html>
