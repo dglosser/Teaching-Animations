@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Structure → Properties for Polymers</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--gold:#F2B705;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  #app{display:flex;flex-direction:column;min-height:100vh;}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;font-weight:700;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:10px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);} #cap .ex{color:var(--terra);font-weight:700;}
+  #main{display:flex;flex:1;flex-wrap:wrap;gap:0;}
+  #left{flex:1 1 380px;min-width:330px;padding:16px 20px;border-right:1px solid var(--line);}
+  #right{flex:1 1 420px;min-width:340px;padding:16px 20px;background:#fff;}
+  h2{font-family:Cambria,Georgia,serif;font-size:15px;color:var(--navy);margin:0 0 12px;font-weight:700;}
+  .lev{margin-bottom:15px;padding:11px 13px;background:#fff;border-radius:10px;border-left:5px solid var(--steel);}
+  .lev.c{border-color:var(--teal);} .lev.x{border-color:var(--amber);} .lev.b{border-color:var(--terra);background:#FDF6F4;}
+  .lev .top{display:flex;justify-content:space-between;align-items:baseline;}
+  .lev .nm{font-size:14px;font-weight:700;color:var(--navy);}
+  .lev.b .nm{color:var(--terra);}
+  .lev .tag{font-size:10.5px;font-weight:700;color:#fff;background:var(--terra);border-radius:5px;padding:2px 7px;margin-left:7px;}
+  .lev .rd{font-family:Cambria,serif;font-size:13px;color:var(--mut);}
+  .lev .dir{font-size:11.5px;color:var(--mut);margin-top:2px;}
+  input[type=range]{width:100%;margin-top:7px;}
+  .prop{margin-bottom:16px;padding:12px 14px;background:var(--bg);border-radius:11px;}
+  .prop .hd{display:flex;justify-content:space-between;align-items:baseline;}
+  .prop .nm{font-family:Cambria,Georgia,serif;font-size:16px;font-weight:700;color:var(--navy);}
+  .prop .lab{font-size:13px;font-weight:700;color:var(--teal);}
+  .prop .arrow{font-size:16px;font-weight:700;margin-left:8px;}
+  .track{height:20px;background:#E2E8F1;border-radius:10px;overflow:hidden;margin-top:8px;}
+  .fill{height:100%;width:0;border-radius:10px;background:var(--teal);transition:width .18s ease, background .18s ease;}
+  .scale{display:flex;justify-content:space-between;font-size:10.5px;color:var(--mut);margin-top:3px;}
+  .note{margin-top:6px;padding:9px 11px;border-radius:9px;font-size:12.5px;line-height:1.45;display:none;}
+  .note.on{display:block;}
+  .note.br{background:#FBE7E2;border:1px solid var(--terra);color:#7d2f25;}
+  .note.ts{background:#FBEBD5;border:1px solid var(--amber);color:#8a5200;}
+  .key{font-size:12px;color:var(--mut);margin-top:6px;line-height:1.6;}
+  .key span{font-weight:700;}
+  .btns{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+  button{font-family:inherit;font-size:12.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);
+    padding:6px 11px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;margin-top:12px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Structure → Properties for Polymers</h1>
+    <p>Four structural levers, three properties · ENGR 170</p>
+  </header>
+  <div id="cap">Most structural levers push the same way: <b>more molecular weight, more crystallinity, more crosslinking → stiffer, stronger, more heat-resistant.</b> <span class="ex">Branching is the exception</span> — it loosens packing and pushes every property back down.</div>
+  <div id="main">
+    <div id="left">
+      <h2>Structural levers</h2>
+      <div class="btns">
+        <button data-p="hdpe">Linear + crystalline (HDPE-like)</button>
+        <button data-p="ldpe">Branched (LDPE-like)</button>
+        <button data-p="thermo">Heavily crosslinked (thermoset)</button>
+        <button data-p="reset">↺ Reset</button>
+      </div>
+      <div class="lev m"><div class="top"><span class="nm">Molecular weight</span><span class="rd" id="rMW">moderate</span></div>
+        <div class="dir">↑ more chain entanglement → ↑ stiffness, strength, T<sub>g</sub>/T<sub>m</sub></div>
+        <input type="range" id="mw" min="0" max="100" value="50"></div>
+      <div class="lev c"><div class="top"><span class="nm">% Crystallinity</span><span class="rd" id="rCR">moderate</span></div>
+        <div class="dir">↑ denser, more ordered packing → ↑ all three</div>
+        <input type="range" id="cr" min="0" max="100" value="50"></div>
+      <div class="lev x"><div class="top"><span class="nm">Crosslinking</span><span class="rd" id="rXL">moderate</span></div>
+        <div class="dir">↑ ties chains into a network → ↑ stiffness, strength; suppresses melting</div>
+        <input type="range" id="xl" min="0" max="100" value="50"></div>
+      <div class="lev b"><div class="top"><span class="nm">Branching<span class="tag">THE EXCEPTION</span></span><span class="rd" id="rBR">moderate</span></div>
+        <div class="dir">↑ loosens packing, lowers density → ↓ all three</div>
+        <input type="range" id="br" min="0" max="100" value="50"></div>
+    </div>
+    <div id="right">
+      <h2>Resulting properties</h2>
+      <div class="prop"><div class="hd"><span class="nm">Stiffness</span><span><span class="lab" id="lS">moderate</span><span class="arrow" id="aS"></span></span></div>
+        <div class="track"><div class="fill" id="fS"></div></div><div class="scale"><span>low</span><span>high</span></div></div>
+      <div class="prop"><div class="hd"><span class="nm">Strength</span><span><span class="lab" id="lT">moderate</span><span class="arrow" id="aT"></span></span></div>
+        <div class="track"><div class="fill" id="fT"></div></div><div class="scale"><span>low</span><span>high</span></div></div>
+      <div class="prop"><div class="hd"><span class="nm">T<sub>g</sub> / T<sub>m</sub></span><span><span class="lab" id="lH">moderate</span><span class="arrow" id="aH"></span></span></div>
+        <div class="track"><div class="fill" id="fH"></div></div><div class="scale"><span>low</span><span>high</span></div>
+        <div class="note ts" id="nTS">Heavily crosslinked → <b>it does not melt or flow</b> (thermoset). Past this point more crosslinking doesn't raise T<sub>m</sub> — it removes melting altogether; the polymer degrades before it flows.</div></div>
+      <div class="note br" id="nBR">Branching loosens packing → <b>softer, less dense</b>. Notice it drives all three indicators the opposite way from the other levers.</div>
+      <div class="key">Encoded directions — <span style="color:var(--steel)">MW ↑</span> · <span style="color:var(--teal)">crystallinity ↑</span> · <span style="color:var(--amber)">crosslinking ↑</span> · <span style="color:var(--terra)">branching ↓</span></div>
+      <div class="disc">Directional teaching model: it shows which way each lever pushes and how they combine, using a simple qualitative sum. It is not a calibrated or predictive property model, and the bars are deliberately unitless — no GPa or °C values are implied.</div>
+    </div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const S={mw:50,cr:50,xl:50,br:50};
+let prev=null;
+const clamp=v=>Math.max(0,Math.min(1,v));
+function calc(){
+  const mw=S.mw/100, cr=S.cr/100, xl=S.xl/100, br=S.br/100;
+  const stiff = clamp(0.10 + 0.30*mw + 0.32*cr + 0.28*xl - 0.35*br);
+  const stren = clamp(0.10 + 0.32*mw + 0.30*cr + 0.26*xl - 0.33*br);
+  const therm = clamp(0.10 + 0.28*mw + 0.35*cr + 0.22*xl - 0.32*br);
+  return {stiff,stren,therm,noMelt:xl>=0.70};
+}
+const WORD=v=>v<0.2?"very low":v<0.4?"low":v<0.6?"moderate":v<0.8?"high":"very high";
+function arrow(el,now,before){
+  if(before==null||Math.abs(now-before)<0.004){el.textContent="";return;}
+  const up=now>before; el.textContent=up?"▲":"▼"; el.style.color=up?"var(--teal)":"var(--terra)";
+}
+function render(){
+  const r=calc();
+  $('rMW').textContent=WORD(S.mw/100); $('rCR').textContent=WORD(S.cr/100);
+  $('rXL').textContent=WORD(S.xl/100); $('rBR').textContent=WORD(S.br/100);
+  const set=(f,l,a,v,prevV,forceAmber)=>{
+    $(f).style.width=(v*100).toFixed(1)+"%";
+    $(f).style.background=forceAmber?"var(--amber)":(v>=0.66?"var(--teal)":v>=0.33?"#4E9E86":"#8FB6AA");
+    $(l).textContent=forceAmber?"no melt":WORD(v);
+    $(l).style.color=forceAmber?"var(--amber)":"var(--teal)";
+    arrow($(a),v,prevV);
+  };
+  set('fS','lS','aS',r.stiff,prev&&prev.stiff,false);
+  set('fT','lT','aT',r.stren,prev&&prev.stren,false);
+  set('fH','lH','aH',r.noMelt?1:r.therm,prev&&(prev.noMelt?1:prev.therm),r.noMelt);
+  $('nTS').className="note ts"+(r.noMelt?" on":"");
+  $('nBR').className="note br"+(S.br>=55?" on":"");
+  prev=r;
+}
+['mw','cr','xl','br'].forEach(k=>{$(k).addEventListener('input',e=>{S[k]=+e.target.value;render();});});
+const PRE={hdpe:{mw:70,cr:85,xl:10,br:8}, ldpe:{mw:60,cr:30,xl:8,br:85},
+           thermo:{mw:65,cr:20,xl:92,br:15}, reset:{mw:50,cr:50,xl:50,br:50}};
+document.querySelectorAll('button[data-p]').forEach(b=>b.onclick=()=>{
+  const p=PRE[b.dataset.p]; Object.assign(S,p);
+  ['mw','cr','xl','br'].forEach(k=>$(k).value=S[k]); render();});
+render();
+</script>
+</body>
+</html>
