@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Stress–Strain Explorer</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line);}
+  .lab{font-size:12px;color:var(--mut);margin-right:2px;}
+  button{font-family:inherit;font-size:12.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:6px 11px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);} button.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  #main{display:flex;flex-wrap:wrap;}
+  #left{flex:1 1 460px;min-width:360px;padding:14px 20px;}
+  #right{flex:1 1 320px;min-width:300px;padding:16px 20px;border-left:1px solid var(--line);background:#fff;}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;cursor:ew-resize;}
+  .sliderow{display:flex;align-items:center;gap:10px;margin-top:10px;}
+  .sliderow input{flex:1;}
+  .evt{border-radius:10px;padding:12px 14px;margin-bottom:12px;}
+  .evt .t{font-family:Cambria,serif;font-size:16px;font-weight:700;margin:0 0 4px;}
+  .evt .d{font-size:13px;line-height:1.5;}
+  .mini{display:flex;gap:8px;margin-top:8px;}
+  .mini canvas{width:120px;height:80px;border:1px solid var(--line);border-radius:8px;flex:none;}
+  .rd{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px dotted var(--line);}
+  .rd b{font-family:Cambria,serif;color:var(--navy);}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:4px 20px 14px;}
+  h2{font-family:Cambria,serif;font-size:14px;color:var(--navy);margin:0 0 8px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Stress–Strain Explorer</h1>
+  <p>Drag along the curve — see what the atoms are doing, and which property lives there · ENGR 170</p>
+</header>
+<div id="cap">Every mechanical property is an <b>event on this curve</b>. Drag the marker: the panel on the right shows <b>what the atoms are doing</b> at that strain, and the property landmarks light up as you pass them. Switch the material class to see how <b>bonding sets the whole shape</b>.</div>
+<div id="bar">
+  <span class="lab">Material:</span>
+  <button data-m="metal" class="on">Ductile metal</button>
+  <button data-m="ceramic">Brittle ceramic</button>
+  <button data-m="polymer">Polymer</button>
+  <span class="lab" style="margin-left:12px">Strain ε</span>
+</div>
+<div id="main">
+  <div id="left">
+    <canvas id="cv" width="620" height="430"></canvas>
+    <div class="sliderow"><input type="range" id="eps" min="0" max="1000" value="60"></div>
+  </div>
+  <div id="right">
+    <div class="evt" id="evt">
+      <p class="t" id="evtT">Elastic</p>
+      <p class="d" id="evtD"></p>
+      <div class="mini"><canvas id="m" width="120" height="80"></canvas></div>
+    </div>
+    <h2>Readouts</h2>
+    <div class="rd"><span>stress σ</span><b id="rS">—</b></div>
+    <div class="rd"><span>strain ε</span><b id="rE">—</b></div>
+    <div class="rd"><span>region</span><b id="rR">—</b></div>
+    <div class="rd"><span>recoverable?</span><b id="rRec">—</b></div>
+    <div class="rd"><span>property here</span><b id="rP">—</b></div>
+  </div>
+</div>
+<div class="disc">Schematic engineering stress–strain curves chosen to show characteristic shapes; values are representative, not measured for a specific alloy. Atomic panels are teaching cartoons of the dominant event (bond stretch / dislocation glide / bond rupture / chain uncoiling).</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,H=cv.height;
+cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+const mc=$('m'),mx=mc.getContext('2d');const MW=mc.width,MH=mc.height;
+mc.width=MW*dpr;mc.height=MH*dpr;mc.style.height=MH+'px';mx.setTransform(dpr,0,0,dpr,0,0);
+
+// material models: return {sigma(e), ey, sy, eTS, TS, ef, emax, smax, name}
+const MODELS={
+ metal:{name:"ductile metal",col:"#2E5496",emax:0.28,smax:560,ey:0.012,sy:320,eTS:0.16,TS:520,ef:0.24,
+   sig:e=>{const ey=0.012,sy=320,TS=520,eTS=0.16,ef=0.24;
+     if(e<=ey)return sy/ey*e;
+     if(e<=eTS)return sy+(TS-sy)*(1-Math.exp(-(e-ey)/0.05));
+     return TS-(TS-470)*Math.pow((e-eTS)/(ef-eTS),1.6);}},
+ ceramic:{name:"brittle ceramic",col:"#B85042",emax:0.011,smax:700,ey:0.009,sy:640,eTS:0.009,TS:640,ef:0.009,
+   sig:e=>{const ef=0.009; return e<=ef? (640/ef)*e : NaN;}},
+ polymer:{name:"polymer",col:"#E8890C",emax:0.36,smax:90,ey:0.03,sy:45,eTS:0.33,TS:70,ef:0.33,
+   sig:e=>{const ey=0.03,sy=45,TS=70,ef=0.33; if(e<=ey)return sy/ey*e; if(e<=ef)return sy+(TS-sy)*(1-Math.exp(-(e-ey)/0.09)); return NaN;}},
+};
+let cur="metal", eps=0.02;
+const PAD={l:58,r:16,t:16,b:44};
+function XY(e,s,m){const X=PAD.l+(W-PAD.l-PAD.r)*e/m.emax;
+  const Y=H-PAD.b-(H-PAD.t-PAD.b)*s/m.smax; return [X,Y];}
+
+function region(m,e){
+  if(e<=m.ey) return "elastic";
+  if(cur==="ceramic") return e<m.ef? "elastic":"fracture";
+  if(e>=m.ef) return "fracture";
+  if(cur==="metal" && e>m.eTS) return "necking";
+  return "plastic";
+}
+function draw(){
+  const m=MODELS[cur];
+  ctx.clearRect(0,0,W,H);
+  // region shading (metal only rich; others simpler)
+  function band(e0,e1,col){const [x0]=XY(e0,0,m),[x1]=XY(e1,0,m);
+    ctx.fillStyle=col;ctx.fillRect(x0,PAD.t,x1-x0,H-PAD.t-PAD.b);}
+  band(0,m.ey,"rgba(217,225,242,0.45)");
+  if(cur==="ceramic"){band(m.ey,m.emax,"rgba(243,218,213,0.5)");}
+  else{band(m.ey,Math.min(m.eTS,m.ef),"rgba(251,234,210,0.5)");
+       band(Math.min(m.eTS,m.ef),m.ef,"rgba(243,218,213,0.5)");}
+  // axes
+  ctx.strokeStyle="#6B7480";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,H-PAD.b);ctx.lineTo(W-PAD.r,H-PAD.b);ctx.stroke();
+  ctx.fillStyle="#6B7480";ctx.font="12px Calibri";ctx.textAlign="center";
+  ctx.fillText("engineering strain  ε",(PAD.l+W-PAD.r)/2,H-10);
+  ctx.save();ctx.translate(15,(PAD.t+H-PAD.b)/2);ctx.rotate(-Math.PI/2);ctx.fillText("engineering stress  σ (MPa)",0,0);ctx.restore();
+  // area under curve up to eps (toughness so far)
+  ctx.beginPath();ctx.moveTo(...XY(0,0,m));
+  for(let e=0;e<=eps+1e-6;e+=m.emax/400){const s=m.sig(Math.min(e,eps));if(isNaN(s))break;ctx.lineTo(...XY(e,s,m));}
+  ctx.lineTo(...XY(Math.min(eps,m.ef),0,m));ctx.closePath();
+  ctx.fillStyle="rgba(31,122,99,0.13)";ctx.fill();
+  // curve
+  ctx.beginPath();let started=false;
+  for(let e=0;e<=m.emax+1e-6;e+=m.emax/400){const s=m.sig(e);if(isNaN(s)){break;}
+    const p=XY(e,s,m);if(!started){ctx.moveTo(...p);started=true;}else ctx.lineTo(...p);}
+  ctx.strokeStyle=m.col;ctx.lineWidth=3;ctx.stroke();
+  // fracture X
+  const sf=m.sig(m.ef); if(!isNaN(sf)){const pf=XY(m.ef,sf,m);
+    ctx.strokeStyle=m.col;ctx.lineWidth=3;ctx.beginPath();
+    ctx.moveTo(pf[0]-6,pf[1]-6);ctx.lineTo(pf[0]+6,pf[1]+6);ctx.moveTo(pf[0]+6,pf[1]-6);ctx.lineTo(pf[0]-6,pf[1]+6);ctx.stroke();}
+  // landmarks
+  function mark(e,s,col,txt){const [x,y]=XY(e,s,m);ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,4.5,0,7);ctx.fill();
+    ctx.fillStyle=col;ctx.font="bold 10.5px Calibri";ctx.textAlign="left";ctx.fillText(txt,x+7,y-6);}
+  if(cur!=="ceramic"){mark(m.ey,m.sy,"#E8890C","σ_y");}
+  if(cur==="metal"){mark(m.eTS,m.TS,"#1F3864","TS");}
+  // marker at eps
+  eps=Math.min(eps,m.ef);
+  const s=m.sig(eps); const [x,y]=XY(eps,s,m);
+  ctx.strokeStyle="#6B7480";ctx.setLineDash([3,3]);ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,H-PAD.b);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(x,y);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle="#fff";ctx.strokeStyle=m.col;ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,7,0,7);ctx.fill();ctx.stroke();
+  // readouts + right panel
+  const reg=region(m,eps);
+  $('rS').textContent=s.toFixed(0)+" MPa";$('rE').textContent=(eps*100).toFixed(2)+" %";
+  $('rR').textContent=reg;
+  $('rRec').textContent=(reg==="elastic")?"yes — springs back":"no — permanent";
+  $('rRec').style.color=(reg==="elastic")?"#1F7A63":"#B85042";
+  const props={elastic:"modulus E (slope), resilience (area)",plastic:"yield σ_y, work-hardening",
+    necking:"tensile strength (peak) just passed",fracture:"ductility (%EL), toughness (total area)"};
+  $('rP').textContent=props[reg]||"—";
+  drawEvent(reg);
+}
+const EVT={
+ elastic:{t:"Elastic — bonds stretch",c:"#2E5496",d:"Atomic bonds are stretching like tiny springs. Remove the load and every atom returns home — the strain is fully recoverable. The slope here is the modulus E, set by the stiffness of the bonds."},
+ plastic:{t:"Plastic — planes slip",c:"#E8890C",d:"Past yield, dislocations glide and planes of atoms slide to new neighbors. This is permanent: unload now and the shape stays deformed. Yield strength σ_y is the stress needed to start moving dislocations."},
+ necking:{t:"Necking — about to fail",c:"#B85042",d:"You have passed the peak (tensile strength). Deformation localizes into a neck that thins rapidly; the engineering stress falls even as the true stress keeps rising."},
+ fracture:{t:"Fracture — bonds break",c:"#B85042",d:"Bonds across a plane finally rupture and the specimen separates. How much plastic strain it reached before this is its ductility; the total area under the curve is its toughness."},
+};
+function drawEvent(reg){
+  const e=EVT[reg]||EVT.elastic;
+  $('evtT').textContent=e.t;$('evtT').style.color=e.c;$('evtD').textContent=e.d;
+  $('evt').style.background=reg==="elastic"?"#EEF2F9":reg==="plastic"?"#FBEfe0":"#FBECE9";
+  // mini atomic cartoon
+  mx.clearRect(0,0,MW,MH);
+  function at(x,y,c){mx.beginPath();mx.arc(x,y,7,0,7);mx.fillStyle=c;mx.fill();mx.strokeStyle="#2E5496";mx.lineWidth=1;mx.stroke();}
+  const base="#c9d4e6";
+  if(reg==="elastic"){for(let j=0;j<3;j++)for(let i=0;i<5;i++)at(16+i*22+j*4,20+j*20,base);}
+  else if(reg==="plastic"){for(let j=0;j<3;j++)for(let i=0;i<5;i++){const off=j<1?12:0;at(14+i*22+off,20+j*20,j<1?"#f2c66a":base);} mx.strokeStyle="#E8890C";mx.setLineDash([4,3]);mx.beginPath();mx.moveTo(6,52);mx.lineTo(MW-6,52);mx.stroke();mx.setLineDash([]);}
+  else{for(let j=0;j<3;j++)for(let i=0;i<5;i++){const gap=i<2?0:16;at(14+i*20+gap,20+j*20,"#e0b2ab");} mx.strokeStyle="#B85042";mx.setLineDash([2,2]);for(let j=0;j<3;j++){mx.beginPath();mx.moveTo(14+1*20+7,20+j*20);mx.lineTo(14+2*20+16-7,20+j*20);mx.stroke();}mx.setLineDash([]);}
+}
+// interaction
+function setEpsFromX(clientX){const r=cv.getBoundingClientRect();const m=MODELS[cur];
+  const e=(clientX-r.left-PAD.l/dpr*0)/(r.width);  // fraction
+  const frac=Math.max(0,Math.min(1,(clientX-r.left-PAD.l)/(r.width-PAD.l-PAD.r)));
+  eps=Math.max(0,Math.min(m.ef,frac*m.emax));$('eps').value=(eps/m.emax*1000);draw();}
+let drag=false;
+cv.addEventListener('mousedown',e=>{drag=true;setEpsFromX(e.clientX);});
+window.addEventListener('mousemove',e=>{if(drag)setEpsFromX(e.clientX);});
+window.addEventListener('mouseup',()=>drag=false);
+cv.addEventListener('touchstart',e=>{setEpsFromX(e.touches[0].clientX);e.preventDefault();},{passive:false});
+cv.addEventListener('touchmove',e=>{setEpsFromX(e.touches[0].clientX);e.preventDefault();},{passive:false});
+$('eps').addEventListener('input',e=>{const m=MODELS[cur];eps=(+e.target.value/1000)*m.emax;eps=Math.min(eps,m.ef);draw();});
+document.querySelectorAll('button[data-m]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('button[data-m]').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');cur=b.dataset.m;const m=MODELS[cur];eps=Math.min(eps,m.ef*0.4);$('eps').value=eps/m.emax*1000;draw();});
+draw();
+</script>
+</body>
+</html>

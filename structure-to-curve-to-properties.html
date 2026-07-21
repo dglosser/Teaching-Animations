@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Structure → Curve → Properties</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #main{display:flex;flex-wrap:wrap;}
+  #left{flex:1 1 330px;min-width:300px;padding:16px 20px;border-right:1px solid var(--line);background:#fff;}
+  #mid{flex:1 1 380px;min-width:330px;padding:14px 20px;}
+  #right{flex:1 1 280px;min-width:260px;padding:16px 20px;background:#fff;border-left:1px solid var(--line);}
+  h2{font-family:Cambria,serif;font-size:14px;color:var(--navy);margin:0 0 12px;}
+  .ctl{margin-bottom:20px;}
+  .ctl .nm{font-weight:700;color:var(--navy);font-size:13.5px;}
+  .ctl .nm.p{color:var(--purp);}
+  .ctl .sub{font-size:11.5px;color:var(--mut);margin:2px 0 4px;}
+  .ctl .val{font-family:Cambria,serif;font-weight:700;float:right;}
+  input[type=range]{width:100%;}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .preset{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  button{font-family:inherit;font-size:11.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:5px 9px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  .prop{margin-bottom:11px;}
+  .prop .hd{display:flex;justify-content:space-between;font-size:12.5px;}
+  .prop .nm{font-weight:700;}
+  .track{height:16px;background:#E2E8F1;border-radius:8px;overflow:hidden;margin-top:3px;}
+  .fill{height:100%;width:0;border-radius:8px;transition:width .18s ease;}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:4px 20px 14px;}
+  .msg{font-size:12px;color:var(--mut);line-height:1.5;margin-top:6px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Structure → the whole curve → every property</h1>
+  <p>Two structural roots reshape one curve — and set all six mechanical properties · ENGR 170</p>
+</header>
+<div id="cap">Mechanical properties aren't six independent facts. They fall out of <b>two structural roots</b>: how stiff/strong the bonds are, and how easily <b>dislocations move</b>. Drag the two sliders — watch the curve reshape and every property follow.</div>
+<div id="main">
+  <div id="left">
+    <h2>Structural roots</h2>
+    <div class="ctl">
+      <div class="nm">Bond stiffness &amp; strength <span class="val" id="vB">med</span></div>
+      <div class="sub">the Ch 2 energy well — deeper &amp; narrower = stiffer, stronger, higher Tm</div>
+      <input type="range" id="B" min="0" max="100" value="55">
+    </div>
+    <div class="ctl">
+      <div class="nm p">Ease of dislocation motion <span class="val" id="vD" style="color:var(--purp)">med</span></div>
+      <div class="sub">bonding character + microstructure — easy slip = ductile; blocked slip = brittle</div>
+      <input type="range" id="D" min="0" max="100" value="60">
+    </div>
+    <div class="preset">
+      <button data-p="metal">Ductile metal</button>
+      <button data-p="ceramic">Brittle ceramic</button>
+      <button data-p="polymer">Soft polymer</button>
+      <button data-p="hss">Hardened steel</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div id="mid">
+    <canvas id="cv" width="480" height="380"></canvas>
+  </div>
+  <div id="right">
+    <h2>Resulting properties</h2>
+    <div class="prop"><div class="hd"><span class="nm" style="color:var(--steel)">E — stiffness</span><span id="wE"></span></div><div class="track"><div class="fill" id="fE" style="background:var(--steel)"></div></div></div>
+    <div class="prop"><div class="hd"><span class="nm" style="color:var(--amber)">σ_y — yield</span><span id="wY"></span></div><div class="track"><div class="fill" id="fY" style="background:var(--amber)"></div></div></div>
+    <div class="prop"><div class="hd"><span class="nm" style="color:var(--navy)">TS — strength</span><span id="wT"></span></div><div class="track"><div class="fill" id="fT" style="background:var(--navy)"></div></div></div>
+    <div class="prop"><div class="hd"><span class="nm" style="color:var(--teal)">ductility</span><span id="wDu"></span></div><div class="track"><div class="fill" id="fDu" style="background:var(--teal)"></div></div></div>
+    <div class="prop"><div class="hd"><span class="nm" style="color:var(--terra)">toughness</span><span id="wTo"></span></div><div class="track"><div class="fill" id="fTo" style="background:var(--terra)"></div></div></div>
+    <div class="prop"><div class="hd"><span class="nm" style="color:var(--purp)">hardness</span><span id="wH"></span></div><div class="track"><div class="fill" id="fH" style="background:var(--purp)"></div></div></div>
+  </div>
+</div>
+<div class="disc">Qualitative teaching model. Bars show which way each property moves as the two structural roots change; they are unitless and not a calibrated prediction. Toughness is computed as the actual area under the generated curve, so the strength–ductility trade-off is real within the model.</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,H=cv.height;
+cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+let B=0.55, D=0.60;
+const clamp=v=>Math.max(0,Math.min(1,v));
+
+// Build a curve from (B,D). Returns {pts:[[e,s]], ey,sy,eTS,TS,ef, E,area}
+function build(){
+  const Emod = 0.25+0.75*B;                 // elastic slope factor
+  const ey = 0.006+0.010*(1-B*0.3);
+  const sy = (0.15+0.65*B) * (0.55+0.6*(1-D));   // yield rises with bond strength AND with blocked slip
+  // ductility: high when slip is easy (D high), low when blocked
+  const duct = 0.02 + 0.34*D*(0.5+0.5*B*0.4);
+  const ef = duct;                          // fracture strain
+  const workhard = 0.35+0.4*B;              // how much stress climbs in plastic region
+  const TS = Math.min(1.0, sy + workhard*Math.min(0.6,duct)*1.6*(0.5+0.5*D));
+  const brittle = D<0.16;                   // snaps at yield, no plastic tail
+  const emax=0.42;
+  const N=160; let pts=[]; let area=0, prev=null;
+  for(let i=0;i<=N;i++){
+    const e=ef*i/N; let s;
+    if(e<=ey) s=sy/ey*e;
+    else if(brittle) { s=NaN; }
+    else {
+      const t=(e-ey)/Math.max(1e-4,(ef-ey));
+      // rise to TS then slight fall (necking) near the end for ductile
+      const rise = sy+(TS-sy)*(1-Math.exp(-t*2.4));
+      const neck = t>0.75 ? (rise - (TS-sy)*0.12*((t-0.75)/0.25)) : rise;
+      s=neck;
+    }
+    if(isNaN(s)){break;}
+    pts.push([e,s]);
+    if(prev){area += 0.5*(s+prev[1])*(e-prev[0]);}
+    prev=[e,s];
+  }
+  if(brittle){ // ceramic: straight line to (ey2, high s) then X
+    const ey2=ey*1.0; const sB=Math.min(1.0, 0.35+0.6*B);
+    pts=[[0,0],[ey2,sB]]; area=0.5*sB*ey2; return {pts,ey:ey2,sy:sB,TS:sB,ef:ey2,E:Emod,area,brittle:true,duct:0.02};
+  }
+  return {pts,ey,sy,TS,ef,E:Emod,area,brittle:false,duct};
+}
+const PAD={l:50,r:14,t:14,b:40}, EMAX=0.42, SMAX=1.05;
+function XY(e,s){return [PAD.l+(W-PAD.l-PAD.r)*e/EMAX, H-PAD.b-(H-PAD.t-PAD.b)*s/SMAX];}
+function draw(){
+  const c=build();
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle="#6B7480";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,H-PAD.b);ctx.lineTo(W-PAD.r,H-PAD.b);ctx.stroke();
+  ctx.fillStyle="#6B7480";ctx.font="12px Calibri";ctx.textAlign="center";
+  ctx.fillText("strain  ε",(PAD.l+W-PAD.r)/2,H-8);
+  ctx.save();ctx.translate(14,(PAD.t+H-PAD.b)/2);ctx.rotate(-Math.PI/2);ctx.fillText("stress  σ",0,0);ctx.restore();
+  // area
+  ctx.beginPath();ctx.moveTo(...XY(0,0));
+  c.pts.forEach(p=>ctx.lineTo(...XY(p[0],p[1])));
+  ctx.lineTo(...XY(c.pts[c.pts.length-1][0],0));ctx.closePath();
+  ctx.fillStyle="rgba(184,80,66,0.13)";ctx.fill();
+  // curve
+  ctx.beginPath();c.pts.forEach((p,i)=>{const q=XY(p[0],p[1]);i?ctx.lineTo(...q):ctx.moveTo(...q);});
+  ctx.strokeStyle="#1F3864";ctx.lineWidth=3;ctx.stroke();
+  // fracture X
+  const last=c.pts[c.pts.length-1];const pf=XY(last[0],last[1]);
+  ctx.strokeStyle="#B85042";ctx.lineWidth=3;ctx.beginPath();
+  ctx.moveTo(pf[0]-6,pf[1]-6);ctx.lineTo(pf[0]+6,pf[1]+6);ctx.moveTo(pf[0]+6,pf[1]-6);ctx.lineTo(pf[0]-6,pf[1]+6);ctx.stroke();
+  // yield dot
+  if(!c.brittle){const py=XY(c.ey,c.sy);ctx.fillStyle="#E8890C";ctx.beginPath();ctx.arc(py[0],py[1],4.5,0,7);ctx.fill();
+    ctx.fillStyle="#E8890C";ctx.font="bold 10.5px Calibri";ctx.textAlign="left";ctx.fillText("σ_y",py[0]+6,py[1]-5);}
+  ctx.fillStyle="#6B7480";ctx.font="italic 11px Calibri";ctx.textAlign="right";
+  ctx.fillText("shaded area = toughness",W-PAD.r-4,PAD.t+14);
+  // property bars
+  const WORD=v=>v<0.2?"very low":v<0.4?"low":v<0.6?"med":v<0.8?"high":"very high";
+  function bar(f,w,v){$(f).style.width=(clamp(v)*100).toFixed(0)+"%";$(w).textContent=WORD(clamp(v));}
+  bar('fE','wE',c.E);
+  bar('fY','wY',c.sy);
+  bar('fT','wT',c.TS);
+  bar('fDu','wDu',c.brittle?0.03:clamp(c.duct/0.34));
+  bar('fTo','wTo',clamp(c.area/0.28));
+  bar('fH','wH',clamp(0.5*c.sy+0.5*c.TS));   // hardness tracks strength
+  $('vB').textContent=WORD(B);$('vD').textContent=WORD(D);
+  // narrative
+  let m;
+  if(c.brittle) m="Blocked slip → the material reaches high stress then <b>snaps at yield</b>. Strong and hard, but almost no ductility, so the area (toughness) is tiny. That's a ceramic.";
+  else if(D>0.7 && B<0.4) m="Easy slip, soft bonds → <b>low stiffness, low strength, huge ductility</b>. Long tail, low peak — a soft polymer or annealed metal.";
+  else if(B>0.7 && D<0.45) m="Strong bonds, harder slip → <b>high strength and hardness</b> but reduced ductility. Toughness depends on keeping some plastic strain.";
+  else m="Balanced roots → a <b>tough engineering metal</b>: yields, work-hardens to a peak, then draws out plastic strain before fracture.";
+  $('msg').innerHTML=m;
+}
+$('B').oninput=e=>{B=+e.target.value/100;draw();};
+$('D').oninput=e=>{D=+e.target.value/100;draw();};
+const PRE={metal:[55,68],ceramic:[80,8],polymer:[15,80],hss:[85,32]};
+document.querySelectorAll('button[data-p]').forEach(b=>b.onclick=()=>{
+  const [bb,dd]=PRE[b.dataset.p];B=bb/100;D=dd/100;$('B').value=bb;$('D').value=dd;draw();});
+draw();
+</script>
+</body>
+</html>
