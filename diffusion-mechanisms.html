@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Diffusion Mechanisms</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #bar{display:flex;gap:16px;flex-wrap:wrap;align-items:center;padding:11px 20px;background:#fff;border-bottom:1px solid var(--line);}
+  .grp{display:flex;gap:6px;align-items:center;}
+  button{font-family:inherit;font-size:12.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);
+    padding:6px 12px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  button.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  label{font-size:12.5px;color:var(--mut);}
+  input[type=range]{vertical-align:middle;}
+  #wrap{display:flex;gap:0;flex-wrap:wrap;}
+  .panel{flex:1 1 380px;min-width:340px;padding:14px 20px;}
+  .panel:first-child{border-right:1px solid var(--line);}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .ph{font-family:Cambria,serif;font-size:15px;font-weight:700;margin:0 0 6px;}
+  .vac .ph{color:var(--steel);} .int .ph{color:var(--terra);}
+  .stat{display:flex;justify-content:space-between;margin-top:8px;font-size:13px;}
+  .stat b{font-size:22px;font-family:Cambria,serif;}
+  .vac .stat b{color:var(--steel);} .int .stat b{color:var(--terra);}
+  .note{font-size:11.5px;color:var(--mut);font-style:italic;}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:6px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Two ways an atom moves</h1>
+  <p>Vacancy vs. interstitial diffusion · ENGR 170</p>
+</header>
+<div id="cap">Both mechanisms are just atoms hopping — but the <b>substitutional atom must wait for a neighboring vacancy</b>, while the <b>small interstitial squeezes through the gaps freely</b>. Watch the hop counters diverge.</div>
+<div id="bar">
+  <div class="grp">
+    <button id="play" class="on">⏸ Pause</button>
+    <button id="reset">↺ Reset</button>
+  </div>
+  <div class="grp">
+    <label>Speed</label>
+    <input type="range" id="spd" min="0.3" max="2.5" step="0.1" value="1">
+  </div>
+  <div class="grp">
+    <label>Temperature (sets vacancy supply &amp; hop rate)</label>
+    <input type="range" id="temp" min="0" max="100" value="55" style="width:150px">
+    <span id="tlab" style="font-size:12.5px;color:var(--navy);font-weight:700;">warm</span>
+  </div>
+</div>
+<div id="wrap">
+  <div class="panel vac">
+    <p class="ph">Vacancy diffusion — substitutional</p>
+    <canvas id="cv" width="460" height="360"></canvas>
+    <div class="stat"><span>completed hops</span><b id="vc">0</b></div>
+    <div class="note">A jump happens only when a vacancy sits next door. Higher T → more vacancies (Ch 5) and more frequent jumps.</div>
+  </div>
+  <div class="panel int">
+    <p class="ph">Interstitial diffusion — C, N, H</p>
+    <canvas id="ci" width="460" height="360"></canvas>
+    <div class="stat"><span>completed hops</span><b id="ic">0</b></div>
+    <div class="note">No vacancy needed — the small atom hops between interstices at every attempt. Far more jumps in the same time.</div>
+  </div>
+</div>
+<div class="disc">Teaching animation. Hop rates are schematic — chosen so the qualitative gap (interstitial ≫ vacancy) is visible; they are not calibrated jump frequencies. Real ratios depend on species, structure, and temperature via D = D₀·exp(−Q/RT).</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+function setup(cv){const ctx=cv.getContext('2d');const w=cv.width,h=cv.height;
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=(h)+'px';ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w,h};}
+const V=setup($('cv')), I=setup($('ci'));
+const NX=6,NY=5;
+function gridXY(w,h,i,j){const mx=w/(NX+0.5),my=h/(NY+0.8);
+  return [mx*(i+0.75), my*(j+0.9)];}
+// shaded atom
+function atom(ctx,x,y,r,base,edge,tag){
+  const g=ctx.createRadialGradient(x-r*0.35,y-r*0.35,r*0.2,x,y,r);
+  g.addColorStop(0,base[1]);g.addColorStop(1,base[0]);
+  ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=g;ctx.fill();
+  ctx.lineWidth=1.4;ctx.strokeStyle=edge;ctx.stroke();
+  if(tag){ctx.fillStyle="#fff";ctx.font="bold 11px Calibri";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(tag,x,y);}
+}
+function vacancy(ctx,x,y,r){ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.setLineDash([4,3]);
+  ctx.lineWidth=1.2;ctx.strokeStyle="#C7CFDA";ctx.stroke();ctx.setLineDash([]);}
+const HOST=["#B4C0D2","#DCE4EF"], AM=["#C9760A","#F4A63A"], TE=["#9A3E33","#D07060"];
+function smooth(t){return t*t*(3-2*t);}
+
+// ---- vacancy model ----
+let vac={tag:{i:2,j:2}, hole:{i:3,j:2}, from:null, prog:1, hops:0, wait:0};
+// ---- interstitial model ----
+let intr={pos:0, path:[[0,0],[1,0],[1,1],[2,1],[2,2],[3,2],[3,3],[2,3],[2,2],[3,2],[4,2],[4,1],[3,1],[3,0],[4,0],[5,0],[5,1],[4,1],[4,2],[5,2]], prog:0, hops:0};
+function intCell(k){return intr.path[k%intr.path.length];}
+
+let playing=true, spd=1, temp=0.55, last=performance.now();
+function reset(){vac={tag:{i:2,j:2},hole:{i:3,j:2},from:null,prog:1,hops:0,wait:0};
+  intr.pos=0;intr.prog=0;intr.hops=0;$('vc').textContent=0;$('ic').textContent=0;}
+
+function neighbors(c){return [[c.i+1,c.j],[c.i-1,c.j],[c.i,c.j+1],[c.i,c.j-1]].filter(([i,j])=>i>=0&&i<NX&&j>=0&&j<NY);}
+
+function stepVac(dt){
+  // vacancy hop rate scales with temp (more vacancies, faster)
+  if(vac.prog<1){vac.prog=Math.min(1,vac.prog+dt*2.2*spd);
+    if(vac.prog>=1){vac.hops++;$('vc').textContent=vac.hops;} return;}
+  vac.wait+=dt;
+  const rate=0.25+1.6*temp;            // attempts/sec
+  if(vac.wait> (1/rate)){vac.wait=0;
+    // tagged atom jumps into the hole (they must be adjacent — they are by construction)
+    vac.from={...vac.tag};
+    const t={...vac.tag}; vac.tag={...vac.hole}; vac.hole=t;
+    vac.prog=0;
+    // move hole to a new random neighbor of the tagged atom's new spot (simulate vacancy wandering)
+    const nb=neighbors(vac.tag).filter(([i,j])=>!(i===vac.from.i&&j===vac.from.j));
+    if(nb.length){const [i,j]=nb[Math.floor(Math.random()*nb.length)];vac.hole={i,j};}
+  }
+}
+function stepInt(dt){
+  const rate=6.5*(0.5+temp);           // hops/sec — always much faster
+  intr.prog+=dt*rate*spd;
+  while(intr.prog>=1){intr.prog-=1;intr.pos++;intr.hops++;$('ic').textContent=intr.hops;}
+}
+
+function drawVac(){const {ctx,w,h}=V;ctx.clearRect(0,0,w,h);
+  const r=Math.min(w/(NX+0.5),h/(NY+0.8))*0.40;
+  // bonds
+  ctx.strokeStyle="#D5DCE7";ctx.lineWidth=1.2;
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const [x,y]=gridXY(w,h,i,j);
+    if(i<NX-1){const [x2,y2]=gridXY(w,h,i+1,j);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke();}
+    if(j<NY-1){const [x2,y2]=gridXY(w,h,i,j+1);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke();}}
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){
+    if(i===vac.hole.i&&j===vac.hole.j){const [x,y]=gridXY(w,h,i,j);vacancy(ctx,x,y,r);continue;}
+    if(i===vac.tag.i&&j===vac.tag.j)continue;
+    if(vac.from&&i===vac.from.i&&j===vac.from.j&&vac.prog<1)continue;
+    const [x,y]=gridXY(w,h,i,j);atom(ctx,x,y,r,HOST,"#2E5496");}
+  // tagged atom (interpolate if moving)
+  let ti=vac.tag.i,tj=vac.tag.j;
+  if(vac.prog<1&&vac.from){const f=smooth(vac.prog);
+    ti=vac.from.i+(vac.tag.i-vac.from.i)*f; tj=vac.from.j+(vac.tag.j-vac.from.j)*f;}
+  const [tx,ty]=gridXY(w,h,ti,tj);atom(ctx,tx,ty,r,AM,"#8a5207","C*");
+}
+function drawInt(){const {ctx,w,h}=I;ctx.clearRect(0,0,w,h);
+  const r=Math.min(w/(NX+0.5),h/(NY+0.8))*0.44;
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){const [x,y]=gridXY(w,h,i,j);atom(ctx,x,y,r,HOST,"#2E5496");}
+  const c0=intCell(intr.pos), c1=intCell(intr.pos+1);
+  // interstitial site = between 4 atoms => average of atom centers at (i,j),(i+1,j),(i,j+1),(i+1,j+1) ~ (i+0.5,j+0.5)
+  function site(c){const [gi,gj]=c;const [x1,y1]=gridXY(w,h,gi,gj);const [x2,y2]=gridXY(w,h,gi+1,gj+1);return [(x1+x2)/2,(y1+y2)/2];}
+  const s0=site(c0),s1=site(c1),f=smooth(Math.min(1,intr.prog));
+  const x=s0[0]+(s1[0]-s0[0])*f, y=s0[1]+(s1[1]-s0[1])*f;
+  atom(ctx,x,y,r*0.42,TE,"#7a2f26");
+}
+function frame(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(playing){stepVac(dt);stepInt(dt);} drawVac();drawInt();requestAnimationFrame(frame);}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?"⏸ Pause":"▶ Play";$('play').classList.toggle('on',playing);};
+$('reset').onclick=reset;
+$('spd').oninput=e=>spd=+e.target.value;
+$('temp').oninput=e=>{temp=+e.target.value/100;$('tlab').textContent=temp<0.33?"cool":temp<0.7?"warm":"hot";};
+reset();requestAnimationFrame(frame);
+</script>
+</body>
+</html>

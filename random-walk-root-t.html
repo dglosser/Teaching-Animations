@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Random Walk → √t</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #bar{display:flex;gap:16px;flex-wrap:wrap;align-items:center;padding:11px 20px;background:#fff;border-bottom:1px solid var(--line);}
+  button{font-family:inherit;font-size:12.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:6px 12px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);} button.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  label{font-size:12.5px;color:var(--mut);}
+  #main{display:flex;flex-wrap:wrap;}
+  .panel{flex:1 1 380px;min-width:340px;padding:14px 20px;}
+  .panel:first-child{border-right:1px solid var(--line);}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .cards{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+  .card{flex:1 1 120px;background:var(--bg);border-radius:10px;padding:10px 12px;}
+  .card .k{font-size:11px;color:var(--mut);} .card .v{font-family:Cambria,serif;font-size:19px;font-weight:700;color:var(--navy);}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:6px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Why depth grows as √(Dt)</h1>
+  <p>A diffusing atom is doing a random walk · ENGR 170</p>
+</header>
+<div id="cap">Each atom takes <b>random</b> jumps, so it does not march in a straight line — it wanders. After N jumps its typical net displacement is only <b>√N</b>, not N. That is exactly why diffusion depth scales as √(Dt) instead of linearly with time.</div>
+<div id="bar">
+  <button id="play" class="on">⏸ Pause</button>
+  <button id="reset">↺ Reset</button>
+  <label>Walkers</label>
+  <input type="range" id="nw" min="1" max="40" value="16">
+  <label>Speed</label>
+  <input type="range" id="spd" min="1" max="30" value="10">
+</div>
+<div id="main">
+  <div class="panel">
+    <canvas id="cv" width="460" height="380"></canvas>
+    <div class="cards">
+      <div class="card"><div class="k">jumps taken (N)</div><div class="v" id="oN">0</div></div>
+      <div class="card"><div class="k">√N</div><div class="v" id="osq">0</div></div>
+      <div class="card"><div class="k">mean net displacement</div><div class="v" id="orms">0</div></div>
+    </div>
+  </div>
+  <div class="panel">
+    <canvas id="cg" width="460" height="380"></canvas>
+    <p style="font-size:12px;color:var(--mut);margin:8px 0 0;">Blue line: net displacement = √N (theory). Dots: the running average over all walkers. They track each other — displacement ∝ √N.</p>
+  </div>
+</div>
+<div class="disc">2-D fixed-length random walk. "Mean net displacement" is the root-mean-square straight-line distance from the origin, averaged over all walkers. Physical mapping: N ∝ t (jumps accumulate with time), so RMS distance ∝ √t, i.e. x ∝ √(Dt).</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+function setup(cv){const ctx=cv.getContext('2d');const w=cv.width,h=cv.height;
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w,h};}
+const A=setup($('cv')), B=setup($('cg'));
+const COLS=["#2E5496","#B85042","#1F7A63","#6D4C7D","#E8890C"];
+let walkers=[], N=0, playing=true, spd=10, nw=16, hist=[];
+function reset(){N=0;hist=[];walkers=[];for(let i=0;i<nw;i++)walkers.push({x:0,y:0,path:[[0,0]],c:COLS[i%COLS.length]});}
+function step(){for(const wk of walkers){const a=Math.random()*2*Math.PI;wk.x+=Math.cos(a);wk.y+=Math.sin(a);
+  if(wk.path.length<600)wk.path.push([wk.x,wk.y]);}
+  N++;
+  let s=0;for(const wk of walkers)s+=wk.x*wk.x+wk.y*wk.y;
+  const rms=Math.sqrt(s/walkers.length);hist.push([N,rms]);if(hist.length>2000)hist.shift();
+  $('oN').textContent=N;$('osq').textContent=Math.sqrt(N).toFixed(1);$('orms').textContent=rms.toFixed(1);
+}
+function drawWalk(){const {ctx,w,h}=A;ctx.clearRect(0,0,w,h);
+  const cx=w/2,cy=h/2;const rms=Math.max(1,Math.sqrt(N));const scale=Math.min(w,h)*0.42/Math.max(rms*1.5,6);
+  // rms circle
+  ctx.strokeStyle="#1F3864";ctx.lineWidth=1.6;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.arc(cx,cy,rms*scale,0,7);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle="#1F3864";ctx.font="bold 11px Calibri";ctx.textAlign="left";
+  ctx.fillText("radius ≈ √N",cx+rms*scale*0.7,cy-rms*scale*0.7);
+  for(const wk of walkers){ctx.beginPath();
+    for(let i=0;i<wk.path.length;i++){const X=cx+wk.path[i][0]*scale,Y=cy+wk.path[i][1]*scale;
+      if(i===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);}
+    ctx.strokeStyle=wk.c;ctx.lineWidth=1;ctx.globalAlpha=0.75;ctx.stroke();ctx.globalAlpha=1;
+    const lx=cx+wk.x*scale,ly=cy+wk.y*scale;ctx.fillStyle=wk.c;ctx.beginPath();ctx.arc(lx,ly,2.6,0,7);ctx.fill();}
+  ctx.fillStyle="#000";ctx.beginPath();ctx.arc(cx,cy,3.5,0,7);ctx.fill();
+}
+function drawGraph(){const {ctx,w,h}=B;ctx.clearRect(0,0,w,h);
+  const pad={l:44,r:12,t:14,b:36};
+  const Nmax=Math.max(20,N);const Ymax=Math.sqrt(Nmax)*1.25;
+  ctx.strokeStyle="#6B7480";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,h-pad.b);ctx.lineTo(w-pad.r,h-pad.b);ctx.stroke();
+  ctx.fillStyle="#6B7480";ctx.font="11px Calibri";ctx.textAlign="center";
+  ctx.fillText("√(number of jumps)",(pad.l+w-pad.r)/2,h-8);
+  ctx.save();ctx.translate(14,(pad.t+h-pad.b)/2);ctx.rotate(-Math.PI/2);ctx.fillText("net displacement",0,0);ctx.restore();
+  const sqNmax=Math.sqrt(Nmax);
+  const Xx=sq=>pad.l+(w-pad.l-pad.r)*sq/sqNmax;
+  const Yy=v=>h-pad.b-(h-pad.t-pad.b)*v/Ymax;
+  // theory y=x
+  ctx.strokeStyle="#1F3864";ctx.lineWidth=2;ctx.beginPath();
+  ctx.moveTo(Xx(0),Yy(0));ctx.lineTo(Xx(sqNmax),Yy(sqNmax));ctx.stroke();
+  // data
+  ctx.fillStyle="#B85042";
+  const stepEvery=Math.max(1,Math.floor(hist.length/120));
+  for(let i=0;i<hist.length;i+=stepEvery){const [n,rms]=hist[i];const X=Xx(Math.sqrt(n)),Y=Yy(rms);
+    ctx.beginPath();ctx.arc(X,Y,2.4,0,7);ctx.fill();}
+}
+let acc=0,last=performance.now();
+function frame(now){const dt=(now-last)/1000;last=now;
+  if(playing){acc+=dt*spd;while(acc>=1){acc-=1;step();}}
+  drawWalk();drawGraph();requestAnimationFrame(frame);}
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?"⏸ Pause":"▶ Play";$('play').classList.toggle('on',playing);};
+$('reset').onclick=reset;
+$('spd').oninput=e=>spd=+e.target.value;
+$('nw').oninput=e=>{nw=+e.target.value;reset();};
+reset();requestAnimationFrame(frame);
+</script>
+</body>
+</html>

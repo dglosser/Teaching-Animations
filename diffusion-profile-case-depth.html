@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Diffusion Profile & Case Depth</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #main{display:flex;flex-wrap:wrap;gap:0;}
+  #left{flex:1 1 300px;min-width:290px;padding:16px 20px;border-right:1px solid var(--line);background:#fff;}
+  #right{flex:1 1 460px;min-width:360px;padding:14px 20px;}
+  h2{font-family:Cambria,serif;font-size:14px;color:var(--navy);margin:0 0 12px;}
+  .ctl{margin-bottom:16px;}
+  .ctl .top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;}
+  .ctl .nm{font-weight:700;color:var(--navy);}
+  .ctl .val{font-family:Cambria,serif;color:var(--terra);font-weight:700;}
+  input[type=range]{width:100%;margin-top:6px;}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .cards{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+  .card{flex:1 1 150px;background:var(--bg);border-radius:10px;padding:10px 12px;}
+  .card .k{font-size:11.5px;color:var(--mut);}
+  .card .v{font-family:Cambria,serif;font-size:20px;font-weight:700;color:var(--navy);}
+  .card.hl{background:#FBE7E2;} .card.hl .v{color:var(--terra);}
+  .btns{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap;}
+  button{font-family:inherit;font-size:12px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:6px 10px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  .note{font-size:12px;color:var(--mut);line-height:1.5;margin-top:10px;}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:4px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Carburizing: the √(Dt) rule, live</h1>
+  <p>Fick's second law, C(x,t) = C_s − (C_s−C_0)·erf(x / 2√(Dt)) · ENGR 170</p>
+</header>
+<div id="cap">Diffusion depth grows as <b>x ∝ √(Dt)</b>, not linearly. Push the time slider and watch the case-depth readout: <b>to double the depth you need four times the time.</b> Temperature moves D exponentially, so it is the strongest lever.</div>
+<div id="main">
+  <div id="left">
+    <h2>Furnace settings — carbon into γ-iron</h2>
+    <div class="ctl"><div class="top"><span class="nm">Temperature</span><span class="val" id="vT">950 °C</span></div>
+      <input type="range" id="T" min="800" max="1150" value="950" step="10"></div>
+    <div class="ctl"><div class="top"><span class="nm">Time</span><span class="val" id="vt">4.0 h</span></div>
+      <input type="range" id="t" min="0.25" max="24" value="4" step="0.25"></div>
+    <div class="ctl"><div class="top"><span class="nm">Surface carbon C<sub>s</sub></span><span class="val" id="vCs">1.20 wt%</span></div>
+      <input type="range" id="Cs" min="0.6" max="1.4" value="1.2" step="0.05"></div>
+    <div class="ctl"><div class="top"><span class="nm">Target C for "case" </span><span class="val" id="vCt">0.50 wt%</span></div>
+      <input type="range" id="Ct" min="0.3" max="0.9" value="0.5" step="0.05"></div>
+    <div class="cards">
+      <div class="card"><div class="k">D at this T</div><div class="v" id="oD">—</div></div>
+      <div class="card hl"><div class="k">case depth to reach target</div><div class="v" id="ox">—</div></div>
+    </div>
+    <div class="btns">
+      <button id="b2x">Show: double the time</button>
+      <button id="reset">↺ Reset</button>
+    </div>
+    <div class="note" id="msg"></div>
+  </div>
+  <div id="right">
+    <canvas id="cv" width="620" height="430"></canvas>
+  </div>
+</div>
+<div class="disc">Uses D₀ = 2.3×10⁻⁵ m²/s, Q_d = 148 kJ/mol for C in FCC (γ) iron. C₀ = 0.20 wt% initial. The erf model assumes a semi-infinite bar with a fixed surface concentration — the standard carburizing idealization.</div>
+<script>
+const $=id=>document.getElementById(id);
+const D0=2.3e-5, Q=148000, R=8.314, C0=0.20;
+function erf(x){const s=Math.sign(x);x=Math.abs(x);const t=1/(1+0.3275911*x);
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);
+  return s*y;}
+function erfinv(y){ // rational approx
+  const a=0.147, ln=Math.log(1-y*y), p=2/(Math.PI*a)+ln/2;
+  return Math.sign(y)*Math.sqrt(Math.sqrt(p*p-ln/a)-p);}
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,Hh=cv.height;
+cv.width=W*dpr;cv.height=Hh*dpr;cv.style.height=Hh+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+const S={T:950,t:4,Cs:1.2,Ct:0.5};
+let ghost=null; // {t, x} for the "double time" comparison
+
+function Dof(T){return D0*Math.exp(-Q/(R*(T+273.15)));}
+function depth(D,t_s,Cs,Ct){ // x where C=Ct
+  const arg=(Cs-Ct)/(Cs-C0); // = erf(x/2√Dt)
+  if(arg<=0) return 0; if(arg>=1) return Infinity;
+  return 2*Math.sqrt(D*t_s)*erfinv(arg);
+}
+const PAD={l:56,r:16,t:16,b:44};
+function px(x,xmax){return PAD.l+(W-PAD.l-PAD.r)*x/xmax;}
+function py(c,cmax){return Hh-PAD.b-(Hh-PAD.t-PAD.b)*c/cmax;}
+
+function draw(){
+  const D=Dof(S.T), t_s=S.t*3600;
+  const cmax=1.5;
+  const xd=depth(D,t_s,S.Cs,S.Ct); // metres
+  // choose x-axis max: a bit beyond the deepest relevant depth (use double-time ghost too)
+  let xref=depth(D,t_s*4,S.Cs,0.30);
+  const xmax=Math.max(xref*1e3, (xd*1e3)*1.4, 0.3)/1000*1000; // mm scale handled below
+  const XMAX_mm=Math.max(0.3, Math.min(6, (isFinite(xref)?xref*1e3:1)*1.15));
+  ctx.clearRect(0,0,W,Hh);
+  // axes
+  ctx.strokeStyle="#6B7480";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,Hh-PAD.b);ctx.lineTo(W-PAD.r,Hh-PAD.b);ctx.stroke();
+  ctx.fillStyle="#6B7480";ctx.font="12px Calibri";ctx.textAlign="center";
+  ctx.fillText("depth into surface  x  (mm)",(PAD.l+W-PAD.r)/2,Hh-10);
+  ctx.save();ctx.translate(15,(PAD.t+Hh-PAD.b)/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText("carbon concentration (wt%)",0,0);ctx.restore();
+  // gridlines x
+  ctx.textAlign="center";
+  for(let k=0;k<=5;k++){const xv=XMAX_mm*k/5;const X=PAD.l+(W-PAD.l-PAD.r)*k/5;
+    ctx.strokeStyle="#EDF1F6";ctx.beginPath();ctx.moveTo(X,PAD.t);ctx.lineTo(X,Hh-PAD.b);ctx.stroke();
+    ctx.fillStyle="#6B7480";ctx.fillText(xv.toFixed(2),X,Hh-PAD.b+16);}
+  for(let c=0;c<=cmax+0.001;c+=0.5){const Y=py(c,cmax);
+    ctx.strokeStyle="#EDF1F6";ctx.beginPath();ctx.moveTo(PAD.l,Y);ctx.lineTo(W-PAD.r,Y);ctx.stroke();
+    ctx.fillStyle="#6B7480";ctx.textAlign="right";ctx.fillText(c.toFixed(1),PAD.l-6,Y+4);ctx.textAlign="center";}
+  const Xm=x_mm=>PAD.l+(W-PAD.l-PAD.r)*x_mm/XMAX_mm;
+  // ghost (double time) curve
+  function curve(D,tt,col,lw,dash){ctx.beginPath();
+    for(let i=0;i<=240;i++){const xmm=XMAX_mm*i/240;const xm=xmm/1000;
+      const C=S.Cs-(S.Cs-C0)*erf(xm/(2*Math.sqrt(D*tt)));
+      const X=Xm(xmm),Y=py(C,cmax);if(i===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);}
+    ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.setLineDash(dash||[]);ctx.stroke();ctx.setLineDash([]);}
+  if(ghost){curve(D,t_s*2,"#9CB2D6",2.5,[6,4]);}
+  curve(D,t_s,"#1F3864",3.2);
+  // target line + case depth marker
+  const Yt=py(S.Ct,cmax);
+  ctx.strokeStyle="#6B7480";ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(PAD.l,Yt);ctx.lineTo(W-PAD.r,Yt);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle="#6B7480";ctx.textAlign="left";ctx.fillText("target C (edge of case)",PAD.l+6,Yt-6);
+  if(isFinite(xd)){const xdmm=xd*1e3;const X=Xm(xdmm);
+    ctx.strokeStyle="#B85042";ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.beginPath();ctx.moveTo(X,Yt);ctx.lineTo(X,Hh-PAD.b);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle="#B85042";ctx.beginPath();ctx.arc(X,Yt,5,0,7);ctx.fill();
+    ctx.textAlign="center";ctx.font="bold 12px Calibri";ctx.fillText(xdmm.toFixed(3)+" mm",X,Hh-PAD.b+30);
+    if(ghost){const xd2=depth(D,t_s*2,S.Cs,S.Ct)*1e3;const X2=Xm(xd2);
+      ctx.fillStyle="#5B79A8";ctx.beginPath();ctx.arc(X2,Yt,5,0,7);ctx.fill();}
+  }
+  // Cs marker
+  ctx.fillStyle="#1F3864";ctx.font="bold 12px Calibri";ctx.textAlign="left";
+  ctx.fillText("C_s = "+S.Cs.toFixed(2)+" wt%",PAD.l+6,py(S.Cs,cmax)-6);
+  // readouts
+  $('oD').innerHTML=D.toExponential(2).replace("e","×10<sup>").replace("+","")+"</sup>";
+  $('ox').textContent=isFinite(xd)?(xd*1e3).toFixed(3)+" mm":"—";
+  if(ghost){const xd1=depth(D,t_s,S.Cs,S.Ct)*1e3, xd2=depth(D,t_s*2,S.Cs,S.Ct)*1e3;
+    $('msg').innerHTML="Double the time ("+S.t+" h → "+(S.t*2)+" h): depth "+xd1.toFixed(3)+
+      " → "+xd2.toFixed(3)+" mm, a factor of <b>"+(xd2/xd1).toFixed(2)+"× ≈ √2</b>. Four× the time would double it.";}
+  else $('msg').textContent="";
+}
+function upd(){S.T=+$('T').value;S.t=+$('t').value;S.Cs=+$('Cs').value;S.Ct=+$('Ct').value;
+  $('vT').textContent=S.T+" °C";$('vt').textContent=S.t.toFixed(2)+" h";
+  $('vCs').textContent=S.Cs.toFixed(2)+" wt%";$('vCt').textContent=S.Ct.toFixed(2)+" wt%";draw();}
+['T','t','Cs','Ct'].forEach(k=>$(k).oninput=upd);
+$('b2x').onclick=()=>{ghost=ghost?null:true;$('b2x').textContent=ghost?"Hide double-time curve":"Show: double the time";draw();};
+$('reset').onclick=()=>{ghost=null;$('b2x').textContent="Show: double the time";
+  $('T').value=950;$('t').value=4;$('Cs').value=1.2;$('Ct').value=0.5;upd();};
+upd();
+</script>
+</body>
+</html>
