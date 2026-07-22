@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rule of Mixtures Explorer</title>
+<style>
+  :root{--navy:#1F3864;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;--purp:#6D4C7D;--steel:#2E5496;--slate:#3F4A5A;--mut:#6B7480;--line:#C7CFDA;--ice:#D9E1F2;--light:#F1F4F8;--bg:#FFFFFF;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--slate);font-family:Calibri,'Segoe UI',system-ui,sans-serif;line-height:1.45;}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 20px 40px;}
+  h1{font-family:Cambria,Georgia,serif;color:var(--navy);font-size:25px;margin:2px 0 2px;}
+  .sub{color:var(--mut);font-size:15px;margin:0 0 14px;}
+  .stage{background:var(--light);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:18px;flex-wrap:wrap;}
+  .canvaswrap{flex:1 1 540px;min-width:340px;}
+  canvas{width:100%;height:auto;display:block;border-radius:8px;background:#fff;}
+  .panel{flex:1 1 300px;min-width:280px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .card h3{margin:0 0 6px;font-family:Cambria,serif;font-size:16px;color:var(--navy);}
+  .row{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;border-bottom:1px dashed #e6ebf2;} .row:last-child{border-bottom:none;}
+  .row .k{color:var(--mut);font-size:13.5px;} .row .v{font-weight:bold;font-size:15px;}
+  .big{font-size:20px;font-family:Cambria,serif;}
+  .ctrls{margin:10px 2px 2px;} .ctrls label{font-size:13.5px;display:block;margin:8px 0 2px;}
+  input[type=range]{width:100%;accent-color:var(--amber);}
+  select{font-family:Calibri;font-size:13.5px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;}
+  .hint{font-size:13px;color:var(--mut);margin:8px 2px 0;} b.term{color:var(--navy);}
+  .legend{font-size:12.5px;color:var(--mut);margin-top:6px;} .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:3px;}
+  .legend span{margin-right:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Rule of Mixtures — fibers as springs</h1>
+  <p class="sub">A one-directional fiber composite. Drag the <b style="color:var(--amber)">fiber volume fraction</b> and watch the stiffness split by direction.
+     <b style="color:var(--steel)">Along</b> the fibers they act like springs in parallel (stiff wins); <b style="color:var(--terra)">across</b>, in series (soft wins).</p>
+
+  <div class="stage">
+    <div class="canvaswrap">
+      <canvas id="cv" width="720" height="470"></canvas>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--amber)"></span>fiber (stiff)</span>
+        <span><span class="sw" style="background:var(--steel)"></span>matrix (soft)</span>
+        <span><span class="sw" style="background:var(--navy)"></span>longitudinal E</span>
+        <span><span class="sw" style="background:var(--terra)"></span>transverse E</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Set the composite</h3>
+        <div class="ctrls">
+          <label>Fiber volume fraction  V<sub>f</sub> = <b id="vflab" style="color:var(--amber)">0.60</b></label>
+          <input type="range" id="vf" min="0" max="1" step="0.01" value="0.6">
+          <label>Fiber material (sets E<sub>f</sub>, the fiber modulus)</label>
+          <select id="fiber">
+            <option value="72,2.55">E-glass — E_f = 72 GPa</option>
+            <option value="230,1.80" selected>Carbon — E_f = 230 GPa</option>
+            <option value="130,1.45">Aramid (Kevlar) — E_f = 130 GPa</option>
+          </select>
+          <label>Matrix material (sets E<sub>m</sub>, the matrix modulus)</label>
+          <select id="matrix">
+            <option value="3,1.20" selected>Epoxy — E_m = 3 GPa</option>
+            <option value="3.6,1.30">PEEK — E_m = 3.6 GPa</option>
+            <option value="70,2.70">Aluminum — E_m = 70 GPa</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Resulting stiffness</h3>
+        <div class="row"><span class="k">Longitudinal E<sub>c</sub> (along)</span><span class="v big" id="oL" style="color:var(--navy)">—</span></div>
+        <div class="row"><span class="k">Transverse E<sub>c</sub> (across)</span><span class="v big" id="oT" style="color:var(--terra)">—</span></div>
+        <div class="row"><span class="k">Anisotropy (along ÷ across)</span><span class="v" id="oR">—</span></div>
+        <div class="row"><span class="k">Density ρ<sub>c</sub></span><span class="v" id="oD">—</span></div>
+        <div class="row"><span class="k">Specific stiffness E<sub>long</sub>/ρ</span><span class="v" id="oS">—</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="hint"><b class="term">The two formulas.</b>
+     Along: <b>E<sub>c</sub> = V<sub>f</sub>·E<sub>f</sub> + V<sub>m</sub>·E<sub>m</sub></b> — a weighted average, so the stiff fibers dominate.
+     Across: <b>1/E<sub>c</sub> = V<sub>f</sub>/E<sub>f</sub> + V<sub>m</sub>/E<sub>m</sub></b> — the soft matrix sits in the load path in series and drags stiffness down.
+     Here V<sub>f</sub> is the fiber fraction and V<sub>m</sub> = 1 − V<sub>f</sub> is the matrix fraction.</p>
+</div>
+
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const CSS={navy:'#1F3864',terra:'#B85042',teal:'#1F7A63',amber:'#E8890C',steel:'#2E5496',slate:'#3F4A5A',mut:'#6B7480',line:'#C7CFDA',light:'#F1F4F8'};
+let Vf=0.6, Ef=230, Em=3, rf=1.80, rm=1.20;
+let W=720,H=470;
+
+function calc(){
+  const Vm=1-Vf;
+  const EL=Vf*Ef+Vm*Em;
+  const ET=1/(Vf/Ef+Vm/Em);
+  const rho=Vf*rf+Vm*rm;
+  return {Vm,EL,ET,rho,spec:EL/rho};
+}
+function draw(){
+  const dpr=window.devicePixelRatio||1, cssW=cv.clientWidth||720, cssH=cssW*(H/W);
+  cv.width=cssW*dpr; cv.height=cssH*dpr; W=cssW; H=cssH; ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H); ctx.font='12px Calibri';
+  const r=calc();
+
+  // ---- left: cross-section showing fiber fraction ----
+  const bx=20,by=40,bw=W*0.30,bh=H-140;
+  ctx.fillStyle='#FBF1E3'; ctx.fillRect(bx,by,bw,bh);
+  ctx.strokeStyle=CSS.amber; ctx.lineWidth=1.5; ctx.strokeRect(bx,by,bw,bh);
+  // fibers as vertical stripes; fraction of area = Vf
+  const nStripe=14, stripeW=bw/nStripe;
+  ctx.fillStyle=CSS.amber;
+  for(let i=0;i<nStripe;i++){ const w=stripeW*Vf; ctx.fillRect(bx+i*stripeW+(stripeW-w)/2, by+6, w, bh-12); }
+  ctx.fillStyle=CSS.slate; ctx.textAlign='center'; ctx.font='bold 13px Calibri';
+  ctx.fillText('cross-section', bx+bw/2, by-14);
+  ctx.font='12px Calibri'; ctx.fillStyle=CSS.mut;
+  ctx.fillText((Vf*100).toFixed(0)+'% fiber', bx+bw/2, by+bh+20);
+  ctx.fillText((r.Vm*100).toFixed(0)+'% matrix', bx+bw/2, by+bh+38);
+
+  // ---- right: bar chart longitudinal vs transverse ----
+  const gx=W*0.42, gy=40, gw=W-gx-30, gh=H-140;
+  const maxE=Math.max(r.EL, Ef*0.5, 60);
+  ctx.strokeStyle=CSS.slate; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(gx,gy); ctx.lineTo(gx,gy+gh); ctx.lineTo(gx+gw,gy+gh); ctx.stroke();
+  // y ticks
+  ctx.textAlign='right'; ctx.fillStyle=CSS.mut; ctx.font='11px Calibri';
+  for(let e=0;e<=maxE;e+=50){ const yy=gy+gh-(e/maxE)*gh; ctx.fillText(e,gx-6,yy+4);
+    ctx.strokeStyle='#eef2f7'; ctx.beginPath(); ctx.moveTo(gx,yy); ctx.lineTo(gx+gw,yy); ctx.stroke(); }
+  ctx.save(); ctx.translate(gx-40,gy+gh/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillStyle=CSS.slate; ctx.font='12px Calibri'; ctx.fillText('composite modulus E_c (GPa)',0,0); ctx.restore();
+  // bars
+  const barW=gw*0.26;
+  const bar=(cx,val,col,lab)=>{ const bh2=(val/maxE)*gh, yy=gy+gh-bh2;
+    ctx.fillStyle=col; ctx.fillRect(cx-barW/2,yy,barW,bh2);
+    ctx.fillStyle=col; ctx.textAlign='center'; ctx.font='bold 15px Cambria'; ctx.fillText(val.toFixed(1)+' GPa',cx,yy-8);
+    ctx.fillStyle=CSS.slate; ctx.font='12px Calibri'; ctx.fillText(lab,cx,gy+gh+18); };
+  bar(gx+gw*0.30, r.EL, CSS.navy, 'longitudinal (along)');
+  bar(gx+gw*0.72, r.ET, CSS.terra, 'transverse (across)');
+  // reference marks for Ef, Em
+  const mark=(val,lab,col)=>{ const yy=gy+gh-(val/maxE)*gh; ctx.strokeStyle=col; ctx.setLineDash([4,3]); ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(gx,yy); ctx.lineTo(gx+gw,yy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=col; ctx.textAlign='left'; ctx.font='10.5px Calibri'; ctx.fillText(lab,gx+gw-52,yy-3); };
+  if(Ef<=maxE) mark(Ef,'E_f fiber',CSS.amber);
+  mark(Em,'E_m matrix',CSS.steel);
+
+  // bottom caption bar
+  ctx.textAlign='center'; ctx.fillStyle=CSS.slate; ctx.font='italic 12.5px Calibri';
+  ctx.fillText('Along ('+r.EL.toFixed(0)+') is '+(r.EL/r.ET).toFixed(1)+'× stiffer than across ('+r.ET.toFixed(0)+') — that gap is anisotropy.', W/2, H-16);
+
+  updateReadout(r);
+}
+function updateReadout(r){
+  document.getElementById('vflab').textContent=Vf.toFixed(2);
+  document.getElementById('oL').textContent=r.EL.toFixed(1)+' GPa';
+  document.getElementById('oT').textContent=r.ET.toFixed(1)+' GPa';
+  document.getElementById('oR').textContent=(r.EL/r.ET).toFixed(1)+'×';
+  document.getElementById('oD').textContent=r.rho.toFixed(2)+' g/cm³';
+  document.getElementById('oS').textContent=r.spec.toFixed(0)+' MJ/kg';
+}
+document.getElementById('vf').addEventListener('input',e=>{Vf=+e.target.value;draw();});
+document.getElementById('fiber').addEventListener('change',e=>{const p=e.target.value.split(',');Ef=+p[0];rf=+p[1];draw();});
+document.getElementById('matrix').addEventListener('change',e=>{const p=e.target.value.split(',');Em=+p[0];rm=+p[1];draw();});
+window.addEventListener('resize',draw);
+draw();
+</script>
+</body>
+</html>

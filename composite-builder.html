@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Composite Builder</title>
+<style>
+  :root{--navy:#1F3864;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;--purp:#6D4C7D;--steel:#2E5496;--slate:#3F4A5A;--mut:#6B7480;--line:#C7CFDA;--ice:#D9E1F2;--light:#F1F4F8;--bg:#FFFFFF;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--slate);font-family:Calibri,'Segoe UI',system-ui,sans-serif;line-height:1.45;}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 20px 40px;}
+  h1{font-family:Cambria,Georgia,serif;color:var(--navy);font-size:25px;margin:2px 0 2px;}
+  .sub{color:var(--mut);font-size:15px;margin:0 0 14px;}
+  .stage{display:flex;gap:18px;flex-wrap:wrap;}
+  .col{flex:1 1 330px;min-width:300px;background:var(--light);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  h3{font-family:Cambria,serif;color:var(--navy);font-size:16px;margin:0 0 10px;}
+  label{font-size:13.5px;display:block;margin:9px 0 3px;color:var(--slate);}
+  select{width:100%;font-family:Calibri;font-size:13.5px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:#fff;}
+  input[type=range]{width:100%;accent-color:var(--amber);}
+  .orient{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+  .orient button{flex:1 1 auto;font-family:Calibri;font-size:12.5px;border:1.5px solid var(--line);background:#fff;color:var(--slate);border-radius:8px;padding:6px 8px;cursor:pointer;}
+  .orient button.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  #lay{border:1px solid var(--line);border-radius:8px;background:#fff;width:100%;height:auto;margin-top:10px;}
+  .metric{margin-bottom:10px;}
+  .metric .top{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:3px;}
+  .metric .top b{font-size:15px;}
+  .track{height:15px;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .fill{height:100%;width:0;transition:width .25s;}
+  .use{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;margin-top:6px;}
+  .use b{color:var(--navy);}
+  .hint{font-size:13px;color:var(--mut);margin:8px 2px 0;} b.term{color:var(--navy);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Composite Builder — design a laminate</h1>
+  <p class="sub">Choose a <b>matrix</b> and <b>fiber</b>, set the fiber fraction, and pick how the fibers are laid up relative to the load.
+     The readout is the rule of mixtures applied to your layup — stiffness, strength, and weight all move together.</p>
+
+  <div class="stage">
+    <div class="col">
+      <h3>Build it</h3>
+      <label>Matrix — the continuous phase that holds fibers together</label>
+      <select id="matrix">
+        <option value="3,1.20,70" selected>Epoxy (E_m 3 GPa)</option>
+        <option value="3.6,1.30,95">PEEK thermoplastic (E_m 3.6 GPa)</option>
+        <option value="70,2.70,200">Aluminum (metal-matrix, E_m 70 GPa)</option>
+      </select>
+      <label>Fiber — the stiff/strong reinforcement that carries load</label>
+      <select id="fiber">
+        <option value="72,2.55,2000">E-glass (E_f 72 GPa)</option>
+        <option value="230,1.80,3500" selected>Carbon (E_f 230 GPa)</option>
+        <option value="130,1.45,2900">Aramid / Kevlar (E_f 130 GPa)</option>
+      </select>
+      <label>Fiber volume fraction  V<sub>f</sub> = <b id="vflab" style="color:var(--amber)">0.60</b></label>
+      <input type="range" id="vf" min="0.1" max="0.7" step="0.01" value="0.6">
+      <label>Layup — fiber orientation relative to the load</label>
+      <div class="orient" id="orient">
+        <button data-o="long" class="on">Unidirectional ∥ load</button>
+        <button data-o="trans">Unidirectional ⟂ load</button>
+        <button data-o="cross">Cross-ply 0/90</button>
+        <button data-o="quasi">Quasi-isotropic</button>
+      </div>
+      <canvas id="lay" width="360" height="150"></canvas>
+    </div>
+
+    <div class="col">
+      <h3>Resulting panel</h3>
+      <div class="metric"><div class="top"><span>Stiffness  E (in load direction)</span><b id="vE">—</b></div><div class="track"><div class="fill" id="fE" style="background:var(--navy)"></div></div></div>
+      <div class="metric"><div class="top"><span>Tensile strength (load direction)</span><b id="vS">—</b></div><div class="track"><div class="fill" id="fS" style="background:var(--steel)"></div></div></div>
+      <div class="metric"><div class="top"><span>Lightness  (1 / density)</span><b id="vL">—</b></div><div class="track"><div class="fill" id="fL" style="background:var(--teal)"></div></div></div>
+      <div class="metric"><div class="top"><span>Specific stiffness  E/ρ</span><b id="vSS">—</b></div><div class="track"><div class="fill" id="fSS" style="background:var(--amber)"></div></div></div>
+      <div class="use"><b>Density:</b> <span id="orho"></span> &nbsp;·&nbsp; <b>E:</b> <span id="oE"></span></div>
+      <div class="use"><b>Good for:</b> <span id="ouse"></span></div>
+      <div class="hint" id="owhy"></div>
+    </div>
+  </div>
+  <p class="hint"><b class="term">One idea, four layups.</b> All-parallel fibers give the highest stiffness and strength — but only along the fibers (weak across).
+     Cross-ply and quasi-isotropic trade peak stiffness for more even, multi-directional properties. Real parts pick the layup to match the loads they'll see.</p>
+</div>
+
+<script>
+const CSS={navy:'#1F3864',terra:'#B85042',teal:'#1F7A63',amber:'#E8890C',purp:'#6D4C7D',steel:'#2E5496',slate:'#3F4A5A',mut:'#6B7480',line:'#C7CFDA',light:'#F1F4F8'};
+let Em=3,rm=1.20,sm=70, Ef=230,rf=1.80,sf=3500, Vf=0.6, orient='long';
+
+function props(){
+  const Vm=1-Vf;
+  const EL=Vf*Ef+Vm*Em;
+  const ET=1/(Vf/Ef+Vm/Em);
+  const rho=Vf*rf+Vm*rm;
+  // strength (load direction), MPa — approximate teaching model
+  const SL=Vf*sf*0.9+Vm*sm;      // fiber-dominated
+  const ST=sm*1.1;               // matrix-limited across fibers
+  let E,S,name,use,why;
+  if(orient==='long'){ E=EL; S=SL; name='all fibers along the load';
+    use='springs, drive shafts, spars — one dominant load direction'; why='Every fiber pulls in the load direction, so both stiffness and strength are at their maximum — but rotate the load 90° and it collapses to the transverse values.'; }
+  else if(orient==='trans'){ E=ET; S=ST; name='all fibers across the load';
+    use='rarely chosen on purpose — shows the weak direction'; why='The load now passes through the soft matrix in series (iso-stress). Stiffness and strength are matrix-limited: this is the composite at its worst.'; }
+  else if(orient==='cross'){ E=(EL+ET)/2; S=(SL+ST)/2*0.9; name='half 0°, half 90° plies';
+    use='plates and skins with loads in two perpendicular directions'; why='Half the plies face each of two directions, so you give up peak stiffness for balanced 0°/90° performance.'; }
+  else { E=(3*EL+5*ET)/8; S=SL*0.42; name='plies at 0/±45/90';
+    use='aircraft skins, panels with loads from many directions'; why='Fibers point every which way, so properties are nearly the same in all in-plane directions — at roughly a third of the all-parallel stiffness.'; }
+  return {Vm,EL,ET,rho,E,S,name,use,why};
+}
+
+function drawLay(){
+  const c=document.getElementById('lay'),g=c.getContext('2d');
+  const dpr=window.devicePixelRatio||1,w=c.clientWidth||360,h=150;
+  c.width=w*dpr;c.height=h*dpr;g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  g.fillStyle='#FBFCFE';g.fillRect(0,0,w,h);
+  const cx=w/2,cy=h/2-8, R=44;
+  // panel square
+  g.fillStyle='#F4F7FB'; g.strokeStyle=CSS.line; g.lineWidth=1.5;
+  g.fillRect(cx-R,cy-R,2*R,2*R); g.strokeRect(cx-R,cy-R,2*R,2*R);
+  // fibers
+  g.strokeStyle=CSS.amber; g.lineWidth=2.4;
+  const drawSet=(ang)=>{ g.save(); g.beginPath(); g.rect(cx-R,cy-R,2*R,2*R); g.clip();
+    const dx=Math.cos(ang),dy=Math.sin(ang);
+    for(let t=-2*R;t<=2*R;t+=9){ g.beginPath();
+      g.moveTo(cx+dx*(-2*R)-dy*t, cy+dy*(-2*R)+dx*t);
+      g.lineTo(cx+dx*(2*R)-dy*t, cy+dy*(2*R)+dx*t); g.stroke(); }
+    g.restore(); };
+  if(orient==='long'){ drawSet(Math.PI/2); }
+  else if(orient==='trans'){ drawSet(0); }
+  else if(orient==='cross'){ drawSet(Math.PI/2); g.strokeStyle='#C9760A'; drawSet(0); }
+  else { g.strokeStyle=CSS.amber; drawSet(Math.PI/2); g.strokeStyle='#C9760A'; drawSet(0);
+    g.strokeStyle=CSS.purp; drawSet(Math.PI/4); drawSet(-Math.PI/4); }
+  // load arrows (vertical)
+  g.strokeStyle=CSS.terra; g.fillStyle=CSS.terra; g.lineWidth=2.4;
+  const arr=(y0,y1)=>{ g.beginPath(); g.moveTo(cx+R+22,y0); g.lineTo(cx+R+22,y1); g.stroke();
+    const d=y1>y0?1:-1; g.beginPath(); g.moveTo(cx+R+22,y1); g.lineTo(cx+R+18,y1-6*d); g.lineTo(cx+R+26,y1-6*d); g.closePath(); g.fill(); };
+  arr(cy-6,cy-R-4); arr(cy+6,cy+R+4);
+  g.fillStyle=CSS.terra; g.font='bold 11px Calibri'; g.textAlign='center'; g.fillText('load',cx+R+22,cy+3);
+  g.fillStyle=CSS.slate; g.font='11px Calibri'; g.fillText('fiber layup: '+props().name,cx,h-6);
+}
+
+function render(){
+  const r=props();
+  document.getElementById('vflab').textContent=Vf.toFixed(2);
+  const setBar=(vid,fid,val,txt,max)=>{document.getElementById(vid).textContent=txt;document.getElementById(fid).style.width=Math.max(2,Math.min(100,val/max*100))+'%';};
+  setBar('vE','fE',r.E,r.E.toFixed(0)+' GPa',200);
+  setBar('vS','fS',r.S,r.S.toFixed(0)+' MPa',2200);
+  setBar('vL','fL',1/r.rho, (1/r.rho).toFixed(2)+' cm³/g',0.7);
+  setBar('vSS','fSS',r.E/r.rho,(r.E/r.rho).toFixed(0)+' MJ/kg',110);
+  document.getElementById('orho').textContent=r.rho.toFixed(2)+' g/cm³';
+  document.getElementById('oE').textContent=r.E.toFixed(0)+' GPa (of E_f '+Ef+', E_m '+Em+')';
+  document.getElementById('ouse').textContent=r.use;
+  document.getElementById('owhy').textContent=r.why;
+  drawLay();
+}
+document.getElementById('vf').addEventListener('input',e=>{Vf=+e.target.value;render();});
+document.getElementById('matrix').addEventListener('change',e=>{const p=e.target.value.split(',');Em=+p[0];rm=+p[1];sm=+p[2];render();});
+document.getElementById('fiber').addEventListener('change',e=>{const p=e.target.value.split(',');Ef=+p[0];rf=+p[1];sf=+p[2];render();});
+document.querySelectorAll('#orient button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#orient button').forEach(x=>x.classList.remove('on'));b.classList.add('on');orient=b.dataset.o;render();}));
+window.addEventListener('resize',render);
+render();
+</script>
+</body>
+</html>

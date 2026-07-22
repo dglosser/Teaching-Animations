@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ashby Chart Selector</title>
+<style>
+  :root{--navy:#1F3864;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;--purp:#6D4C7D;--steel:#2E5496;--slate:#3F4A5A;--mut:#6B7480;--line:#C7CFDA;--ice:#D9E1F2;--light:#F1F4F8;--bg:#FFFFFF;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--slate);font-family:Calibri,'Segoe UI',system-ui,sans-serif;line-height:1.45;}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 20px 40px;}
+  h1{font-family:Cambria,Georgia,serif;color:var(--navy);font-size:25px;margin:2px 0 2px;}
+  .sub{color:var(--mut);font-size:15px;margin:0 0 14px;}
+  .stage{background:var(--light);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:18px;flex-wrap:wrap;}
+  .canvaswrap{flex:1 1 560px;min-width:340px;}
+  canvas{width:100%;height:auto;display:block;border-radius:8px;background:#fff;}
+  .panel{flex:1 1 280px;min-width:260px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .card h3{margin:0 0 8px;font-family:Cambria,serif;font-size:16px;color:var(--navy);}
+  .idx button{display:block;width:100%;text-align:left;font-family:Calibri;font-size:13px;border:1.5px solid var(--line);background:#fff;color:var(--slate);border-radius:8px;padding:7px 10px;margin-bottom:6px;cursor:pointer;}
+  .idx button.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .idx button small{color:inherit;opacity:.8;}
+  .pass{font-size:13.5px;} .pass .m{display:inline-block;background:var(--teal);color:#fff;border-radius:14px;padding:2px 9px;margin:2px 3px 2px 0;font-weight:bold;font-size:12.5px;}
+  .row{display:flex;justify-content:space-between;padding:3px 0;} .row .k{color:var(--mut);font-size:13px;} .row .v{font-weight:bold;}
+  .hint{font-size:13px;color:var(--mut);margin:8px 2px 0;} b.term{color:var(--navy);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ashby Chart Selector — chase the material index</h1>
+  <p class="sub">Every point is a material: stiffness E up, density ρ right. Pick a design goal (it sets the guideline slope), then drag the
+     <b style="color:var(--terra)">selection line</b> up. Materials that stay above it beat your target — the <b>upper-left</b> is always better.</p>
+
+  <div class="stage">
+    <div class="canvaswrap">
+      <canvas id="cv" width="720" height="560"></canvas>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Design goal (sets the slope)</h3>
+        <div class="idx" id="idx">
+          <button data-a="1" class="on">Light stiff <b>tie-rod</b><br><small>maximize E/ρ &nbsp;(slope 1)</small></button>
+          <button data-a="2">Light stiff <b>beam</b> in bending<br><small>maximize √E/ρ &nbsp;(slope 2)</small></button>
+          <button data-a="3">Light stiff <b>panel</b> in bending<br><small>maximize ∛E/ρ &nbsp;(slope 3)</small></button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Passing materials</h3>
+        <div class="row"><span class="k">Your index threshold</span><span class="v" id="othr">—</span></div>
+        <div class="pass" id="opass" style="margin-top:6px"></div>
+      </div>
+    </div>
+  </div>
+  <p class="hint"><b class="term">Why the slope changes.</b> A tie-rod loaded in tension is stiffest-per-mass when you maximize E/ρ (slope 1).
+     A beam in bending rewards thickness, so the right index is √E/ρ (slope 2); a plate, ∛E/ρ (slope 3). Same chart, different winners —
+     that's why "best material" only means anything once you name the job. (E in GPa, ρ in g/cm³.)</p>
+</div>
+
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const CSS={navy:'#1F3864',terra:'#B85042',teal:'#1F7A63',amber:'#E8890C',purp:'#6D4C7D',steel:'#2E5496',slate:'#3F4A5A',mut:'#6B7480',line:'#C7CFDA',light:'#F1F4F8'};
+// materials: name, rho (g/cm3), E (GPa), family color
+const MATS=[
+  ['Steel',7.85,207,CSS.steel],['Aluminum',2.7,70,CSS.steel],['Titanium',4.43,114,CSS.steel],
+  ['Magnesium',1.74,45,CSS.steel],['CFRP',1.6,150,CSS.purp],['GFRP',2.0,40,CSS.purp],
+  ['Alumina',3.9,380,CSS.terra],['SiC',3.2,430,CSS.terra],['Glass',2.5,70,CSS.terra],
+  ['Concrete',2.4,40,CSS.mut],['Oak (∥grain)',0.7,11,'#8A6D3B'],['PMMA',1.19,3.3,CSS.teal],
+  ['Polyethylene',0.95,1.0,CSS.teal],['Rubber',1.1,0.02,CSS.amber],['Cork',0.18,0.03,CSS.mut]
+];
+let a=1;                 // index exponent (slope)
+let cInt=null;           // line intercept in log space (a*log10(M))
+let W=720,H=560, M={l:58,r:18,t:20,b:52};
+const X0=-1.1,X1=1.3, Y0=-2.6,Y1=3.0;   // log10 rho, log10 E
+function px(x){return M.l+(x-X0)/(X1-X0)*(W-M.l-M.r);}
+function py(y){return H-M.b-(y-Y0)/(Y1-Y0)*(H-M.t-M.b);}
+function uxx(p){return X0+(p-M.l)/(W-M.l-M.r)*(X1-X0);}
+function uyy(p){return Y0+(H-M.b-p)/(H-M.t-M.b)*(Y1-Y0);}
+
+function indexOf(rho,E){ return Math.pow(E,1/a)/rho; }        // M
+function thresholdM(){ return Math.pow(10, cInt/a); }
+
+function draw(){
+  const dpr=window.devicePixelRatio||1, cssW=cv.clientWidth||720, cssH=cssW*(H/W);
+  cv.width=cssW*dpr; cv.height=cssH*dpr; W=cssW; H=cssH; ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H); ctx.font='12px Calibri';
+  if(cInt===null){ // init so that ~half pass
+    cInt = Math.log10(indexOf(2.7,70))*a; // through aluminum
+  }
+  // passing region shading (above line)
+  ctx.fillStyle='rgba(31,122,99,0.08)';
+  ctx.beginPath();
+  ctx.moveTo(px(X0),py(a*X0+cInt)); ctx.lineTo(px(X1),py(a*X1+cInt));
+  ctx.lineTo(px(X1),py(Y1)); ctx.lineTo(px(X0),py(Y1)); ctx.closePath(); ctx.fill();
+
+  // grid + ticks
+  ctx.strokeStyle=CSS.slate; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(M.l,M.t); ctx.lineTo(M.l,H-M.b); ctx.lineTo(W-M.r,H-M.b); ctx.stroke();
+  ctx.textAlign='center'; ctx.font='11px Calibri';
+  [0.1,0.3,1,3,10].forEach(v=>{ const X=px(Math.log10(v)); ctx.strokeStyle='#eef2f7';
+    ctx.beginPath(); ctx.moveTo(X,M.t); ctx.lineTo(X,H-M.b); ctx.stroke(); ctx.fillStyle=CSS.mut; ctx.fillText(v,X,H-M.b+16); });
+  ctx.textAlign='right';
+  [0.01,0.1,1,10,100,1000].forEach(v=>{ const Y=py(Math.log10(v)); ctx.strokeStyle='#eef2f7';
+    ctx.beginPath(); ctx.moveTo(M.l,Y); ctx.lineTo(W-M.r,Y); ctx.stroke(); ctx.fillStyle=CSS.mut; ctx.fillText(v,M.l-6,Y+4); });
+  ctx.fillStyle=CSS.slate; ctx.textAlign='center'; ctx.font='12.5px Calibri';
+  ctx.fillText('density  ρ  (g/cm³)  →',(M.l+W-M.r)/2,H-6);
+  ctx.save(); ctx.translate(14,(M.t+H-M.b)/2); ctx.rotate(-Math.PI/2); ctx.fillText("Young's modulus  E  (GPa)  →",0,0); ctx.restore();
+
+  // selection line
+  ctx.strokeStyle=CSS.terra; ctx.lineWidth=2.6;
+  ctx.beginPath(); ctx.moveTo(px(X0),py(a*X0+cInt)); ctx.lineTo(px(X1),py(a*X1+cInt)); ctx.stroke();
+  // drag handle at mid
+  const xm=(X0+X1)/2, ym=a*xm+cInt;
+  ctx.fillStyle=CSS.terra; ctx.beginPath(); ctx.arc(px(xm),py(ym),8,0,7); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='bold 11px Calibri'; ctx.textAlign='center'; ctx.fillText('↕',px(xm),py(ym)+4);
+  ctx.fillStyle=CSS.terra; ctx.font='bold 11px Calibri'; ctx.textAlign='left';
+  ctx.fillText('slope '+a,px(X1)-46,py(a*X1+cInt)-6);
+
+  // material dots
+  const thr=thresholdM(); const passing=[];
+  ctx.font='11px Calibri';
+  MATS.forEach(m=>{ const [nm,rho,E,col]=m; const X=px(Math.log10(rho)),Y=py(Math.log10(E));
+    const pass=indexOf(rho,E)>=thr; if(pass) passing.push(nm);
+    ctx.beginPath(); ctx.arc(X,Y,pass?7:4.5,0,7);
+    ctx.fillStyle=pass?CSS.teal:col; ctx.globalAlpha=pass?1:0.55; ctx.fill(); ctx.globalAlpha=1;
+    if(pass){ ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke(); }
+    ctx.fillStyle=pass?CSS.navy:CSS.mut; ctx.textAlign='left'; ctx.font=pass?'bold 11px Calibri':'11px Calibri';
+    ctx.fillText(nm,X+8,Y+3.5); });
+
+  // "better" arrow
+  ctx.fillStyle=CSS.navy; ctx.textAlign='center'; ctx.font='italic bold 12px Calibri';
+  ctx.fillText('better ↖ lighter & stiffer',px(X0)+92,py(Y1)+18);
+
+  updateReadout(thr,passing);
+}
+function updateReadout(thr,passing){
+  const unit=a===1?'GPa·cm³/g':(a===2?'GPa^½·cm³/g':'GPa^⅓·cm³/g');
+  document.getElementById('othr').textContent='M ≥ '+thr.toFixed(a===1?1:2)+' '+unit;
+  const box=document.getElementById('opass');
+  box.innerHTML = passing.length? passing.map(n=>'<span class="m">'+n+'</span>').join('') : '<span style="color:var(--mut)">none — lower the line</span>';
+}
+
+document.querySelectorAll('#idx button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#idx button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  a=+b.dataset.a; cInt=Math.log10(indexOf(2.7,70))*a; draw();
+}));
+let drag=false;
+function evtY(e){ const r=cv.getBoundingClientRect(); const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top; return cy*(H/r.height); }
+function setLine(e){ const xm=(X0+X1)/2; const yTarget=uyy(evtY(e)); cInt=yTarget-a*xm;
+  const maxc=Y1-a*X0+0.5, minc=Y0-a*X1-0.5; cInt=Math.max(minc,Math.min(maxc,cInt)); draw(); }
+cv.addEventListener('mousedown',e=>{drag=true;setLine(e);e.preventDefault();});
+window.addEventListener('mousemove',e=>{if(drag){setLine(e);e.preventDefault();}});
+window.addEventListener('mouseup',()=>drag=false);
+cv.addEventListener('touchstart',e=>{drag=true;setLine(e);e.preventDefault();},{passive:false});
+cv.addEventListener('touchmove',e=>{if(drag){setLine(e);e.preventDefault();}},{passive:false});
+window.addEventListener('touchend',()=>drag=false);
+window.addEventListener('resize',draw);
+draw();
+</script>
+</body>
+</html>

@@ -11,7 +11,7 @@
 <style>
   :root{
     --ink:#1a2233; --navy:#1F3864; --teal:#1a7a62; --terra:#b1493c; --amber:#b0740c; --plum:#6d4c8f;
-    --rose:#a63a5e; --steel:#3f6f92; --ember:#c0562a;
+    --rose:#a63a5e; --steel:#3f6f92; --ember:#c0562a; --moss:#6f7a2e;
     --bg:#eef1f6; --panel:#ffffff; --line:#d7dee8; --mut:#5f6a7a;
     --serif:'Fraunces',Georgia,'Times New Roman',serif;
     --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
@@ -63,6 +63,7 @@
   .t-fail{color:var(--rose); background:rgba(166,58,94,.10)}
   .t-phase{color:var(--steel); background:rgba(63,111,146,.10)}
   .t-heat{color:var(--ember); background:rgba(192,86,42,.10)}
+  .t-comp{color:var(--moss); background:rgba(111,122,46,.12)}
   h2{
     font-family:var(--serif); font-weight:500; font-size:clamp(22px,3vw,30px);
     line-height:1.15; margin:0; color:var(--ink); letter-spacing:-.01em;
@@ -553,6 +554,53 @@
       </div>
       <div class="frame"><iframe src="age-hardening-explorer.html" loading="lazy" title="Age hardening: precipitate growth, peak strength, and over-aging"></iframe></div>
       <div class="card-foot"><a class="open" href="age-hardening-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+  </section>
+
+  <section id="composites" aria-labelledby="composites-h">
+    <div class="sec-head">
+      <span class="sec-tag t-comp">Composites &amp; materials selection</span>
+    </div>
+    <h2 id="composites-h">Combining materials &mdash; and choosing the right one for the job</h2>
+    <div class="sec-rule"></div>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">29</span>
+          <span class="chip">along vs across</span>
+        </div>
+        <h3>Fibers as springs</h3>
+        <p class="desc">Drag the fiber volume fraction and watch composite stiffness split by direction. Along the fibers they act like springs in parallel, so the stiff phase wins &mdash; Ec = Vf&middot;Ef + Vm&middot;Em, a weighted average. Across them the soft matrix sits in the load path in series and drags stiffness down (1/Ec = Vf/Ef + Vm/Em). Swap the fiber and matrix materials and watch the anisotropy grow.</p>
+      </div>
+      <div class="frame"><iframe src="rule-of-mixtures-explorer.html" loading="lazy" title="Rule of mixtures: longitudinal and transverse stiffness of a fiber composite"></iframe></div>
+      <div class="card-foot"><a class="open" href="rule-of-mixtures-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">30</span>
+          <span class="chip">matrix &middot; fiber &middot; layup</span>
+        </div>
+        <h3>Design a laminate</h3>
+        <p class="desc">Choose a matrix and fiber, set the fiber fraction, and pick a layup &mdash; unidirectional, cross-ply, or quasi-isotropic &mdash; then read stiffness, strength, specific stiffness, and weight from the rule of mixtures. All-parallel fibers give the highest stiffness and strength but only along the fibers; cross-ply and quasi-isotropic trade that peak for more even, multi-directional properties, the way a real part is matched to the loads it will see.</p>
+      </div>
+      <div class="frame"><iframe src="composite-builder.html" loading="lazy" title="Composite laminate builder: matrix, fiber, fraction, and layup"></iframe></div>
+      <div class="card-foot"><a class="open" href="composite-builder.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">31</span>
+          <span class="chip">E&ndash;&rho; &middot; material index</span>
+        </div>
+        <h3>Chase the material index</h3>
+        <p class="desc">Every point is a material on a stiffness-versus-density chart. Pick a design goal &mdash; a light stiff tie-rod, beam, or panel &mdash; and it sets the guideline slope; drag the selection line and the materials that stay in the upper-left beat your target. The winning index changes with the job: E/&rho; for a tie-rod in tension, &radic;E/&rho; for a beam, &#8731;E/&rho; for a panel &mdash; which is why "best material" means nothing until you name the load.</p>
+      </div>
+      <div class="frame"><iframe src="ashby-chart-selector.html" loading="lazy" title="Ashby chart material selection by material index"></iframe></div>
+      <div class="card-foot"><a class="open" href="ashby-chart-selector.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
     </article>
   </section>
 
