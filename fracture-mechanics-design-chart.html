@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Fracture Mechanics Design Chart</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #main{display:flex;flex-wrap:wrap;}
+  #left{flex:1 1 300px;min-width:290px;padding:16px 20px;border-right:1px solid var(--line);background:#fff;}
+  #right{flex:1 1 380px;min-width:320px;padding:14px 20px;}
+  h2{font-family:Cambria,serif;font-size:14px;color:var(--navy);margin:0 0 12px;}
+  .ctl{margin-bottom:16px;}
+  .ctl .top{display:flex;justify-content:space-between;font-size:13px;}
+  .ctl .nm{font-weight:700;color:var(--navy);}
+  .ctl .val{font-family:Cambria,serif;color:var(--terra);font-weight:700;}
+  input[type=range]{width:100%;margin-top:6px;}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .rd{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px dotted var(--line);}
+  .rd b{font-family:Cambria,serif;color:var(--navy);font-size:15px;}
+  .badge{margin-top:12px;padding:11px 12px;border-radius:10px;font-weight:700;text-align:center;font-size:14px;}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:4px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Fracture mechanics: will this crack run?</h1>
+  <p>K = Y·σ·√(πa) — fast fracture the moment K reaches K_IC · ENGR 170</p>
+</header>
+<div id="cap">A crack becomes dangerous when the stress-intensity K reaches the material's toughness K_IC. Move your operating point (stress and crack size) around the chart: the curve is the fracture boundary. <b>Above it, the crack runs; below it, you're safe.</b> Three levers keep you safe — a tougher material, lower stress, or smaller flaws.</div>
+<div id="main">
+  <div id="left">
+    <h2>Operating point &amp; material</h2>
+    <div class="ctl"><div class="top"><span class="nm">Applied stress σ</span><span class="val" id="vS">400 MPa</span></div>
+      <input type="range" id="S" min="50" max="900" value="400" step="10"></div>
+    <div class="ctl"><div class="top"><span class="nm">Crack length a</span><span class="val" id="vA">2.0 mm</span></div>
+      <input type="range" id="A" min="1" max="400" value="20"></div>
+    <div class="ctl"><div class="top"><span class="nm">Fracture toughness K_IC</span><span class="val" id="vK">50 MPa·√m</span></div>
+      <input type="range" id="K" min="20" max="120" value="50" step="1"></div>
+    <div class="rd"><span>current K = σ√(πa)</span><b id="rKcur">—</b></div>
+    <div class="rd"><span>critical stress at this crack</span><b id="rSc">—</b></div>
+    <div class="rd"><span>critical crack at this stress</span><b id="rAc">—</b></div>
+    <div class="badge" id="badge">—</div>
+  </div>
+  <div id="right">
+    <canvas id="cv" width="480" height="400"></canvas>
+  </div>
+</div>
+<div class="disc">Uses K = Yσ√(πa) with Y = 1. Fast fracture when K ≥ K_IC. The same relation gives the critical stress σ_c = K_IC/(Y√(πa)) and the critical crack a_c = (1/π)(K_IC/Yσ)². Representative values; a real assessment uses the actual geometry factor Y and validated toughness data.</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,H=cv.height;
+cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+let S=400,Amm=20,KIC=50; const Y=1.0;
+const PAD={l:56,r:16,t:16,b:44}, AMAX=50, SMAX=1000;  // a in mm, sigma MPa
+function X(a){return PAD.l+(W-PAD.l-PAD.r)*a/AMAX;}
+function Yc(s){return H-PAD.b-(H-PAD.t-PAD.b)*s/SMAX;}
+function draw(){
+  const a_m=Amm/1000;
+  const Kcur=Y*S*Math.sqrt(Math.PI*a_m);
+  const sc=KIC/(Y*Math.sqrt(Math.PI*a_m));          // critical stress at current a
+  const ac=(1/Math.PI)*Math.pow(KIC/(Y*S),2)*1000;  // critical crack (mm) at current sigma
+  ctx.clearRect(0,0,W,H);
+  // regions: shade above/below the fracture curve
+  ctx.beginPath();ctx.moveTo(X(0.02),Yc(0));
+  for(let a=0.02;a<=AMAX;a+=0.2){const s=KIC/(Y*Math.sqrt(Math.PI*a/1000));ctx.lineTo(X(a),Yc(Math.min(s,SMAX)));}
+  const top=ctx;
+  // fill FAIL (above curve)
+  ctx.lineTo(X(AMAX),Yc(SMAX));ctx.lineTo(X(0.02),Yc(SMAX));ctx.closePath();
+  ctx.fillStyle="rgba(184,80,66,0.13)";ctx.fill();
+  // fill SAFE (below)
+  ctx.beginPath();ctx.moveTo(X(0.02),Yc(0));
+  for(let a=0.02;a<=AMAX;a+=0.2){const s=KIC/(Y*Math.sqrt(Math.PI*a/1000));ctx.lineTo(X(a),Yc(Math.min(s,SMAX)));}
+  ctx.lineTo(X(AMAX),Yc(0));ctx.closePath();ctx.fillStyle="rgba(31,122,99,0.11)";ctx.fill();
+  // axes
+  ctx.strokeStyle="#6B7480";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,H-PAD.b);ctx.lineTo(W-PAD.r,H-PAD.b);ctx.stroke();
+  ctx.fillStyle="#6B7480";ctx.font="12px Calibri";ctx.textAlign="center";
+  ctx.fillText("crack length  a  (mm)",(PAD.l+W-PAD.r)/2,H-8);
+  ctx.save();ctx.translate(15,(PAD.t+H-PAD.b)/2);ctx.rotate(-Math.PI/2);ctx.fillText("applied stress  σ (MPa)",0,0);ctx.restore();
+  for(let a=0;a<=AMAX;a+=10){ctx.fillStyle="#6B7480";ctx.fillText(a,X(a),H-PAD.b+16);
+    ctx.strokeStyle="#EDF1F6";ctx.beginPath();ctx.moveTo(X(a),PAD.t);ctx.lineTo(X(a),H-PAD.b);ctx.stroke();}
+  ctx.textAlign="right";for(let s=0;s<=SMAX;s+=200){ctx.fillStyle="#6B7480";ctx.fillText(s,PAD.l-6,Yc(s)+4);}
+  ctx.textAlign="center";
+  // fracture curve
+  ctx.beginPath();let st=false;
+  for(let a=0.3;a<=AMAX;a+=0.2){const s=KIC/(Y*Math.sqrt(Math.PI*a/1000));const yy=Yc(Math.min(s,SMAX));
+    if(s<=SMAX){if(!st){ctx.moveTo(X(a),yy);st=true;}else ctx.lineTo(X(a),yy);}}
+  ctx.strokeStyle="#1F3864";ctx.lineWidth=3;ctx.stroke();
+  // labels
+  ctx.fillStyle="#B85042";ctx.font="bold 12px Calibri";ctx.fillText("FAST FRACTURE",X(34),Yc(760));
+  ctx.fillStyle="#1F7A63";ctx.fillText("SAFE",X(11),Yc(90));
+  // operating point
+  const fail=Kcur>=KIC;
+  const ox=X(Amm),oy=Yc(Math.min(S,SMAX));
+  ctx.strokeStyle="#6B7480";ctx.setLineDash([3,3]);ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox,H-PAD.b);ctx.moveTo(PAD.l,oy);ctx.lineTo(ox,oy);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=fail?"#B85042":"#1F7A63";ctx.strokeStyle="#fff";ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(ox,oy,8,0,7);ctx.fill();ctx.stroke();
+  // readouts
+  $('rKcur').textContent=Kcur.toFixed(1)+" MPa·√m";
+  $('rSc').textContent=isFinite(sc)?sc.toFixed(0)+" MPa":"—";
+  $('rAc').textContent=ac.toFixed(2)+" mm";
+  const b=$('badge');
+  if(fail){b.textContent="K = "+Kcur.toFixed(0)+" ≥ K_IC → CRACK RUNS";b.style.background="#FBECE9";b.style.color="#B85042";}
+  else{b.textContent="K = "+Kcur.toFixed(0)+" < K_IC → safe";b.style.background="#E7F1EC";b.style.color="#1F7A63";}
+  $('vS').textContent=S+" MPa";$('vA').textContent=Amm+" mm";$('vK').textContent=KIC+" MPa·√m";
+}
+$('S').oninput=e=>{S=+e.target.value;draw();};
+$('A').oninput=e=>{Amm=+e.target.value/10;draw();};
+$('K').oninput=e=>{KIC=+e.target.value;draw();};
+draw();
+</script>
+</body>
+</html>

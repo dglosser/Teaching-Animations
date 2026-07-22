@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Stress Concentration</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #main{display:flex;flex-wrap:wrap;}
+  #left{flex:1 1 320px;min-width:300px;padding:16px 20px;border-right:1px solid var(--line);background:#fff;}
+  #right{flex:1 1 380px;min-width:320px;padding:14px 20px;}
+  h2{font-family:Cambria,serif;font-size:14px;color:var(--navy);margin:0 0 12px;}
+  .ctl{margin-bottom:16px;}
+  .ctl .top{display:flex;justify-content:space-between;font-size:13px;}
+  .ctl .nm{font-weight:700;color:var(--navy);}
+  .ctl .val{font-family:Cambria,serif;color:var(--terra);font-weight:700;}
+  input[type=range]{width:100%;margin-top:6px;}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .rd{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px dotted var(--line);}
+  .rd b{font-family:Cambria,serif;color:var(--navy);font-size:16px;}
+  .badge{margin-top:12px;padding:10px 12px;border-radius:10px;font-weight:700;text-align:center;font-size:13.5px;}
+  .btns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+  button{font-family:inherit;font-size:12px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:5px 10px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:4px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Flaws concentrate stress</h1>
+  <p>σ_max = K_t · σ₀ — a sharp feature multiplies the stress right at its tip · ENGR 170</p>
+</header>
+<div id="cap">The average stress on a part tells you almost nothing about where it breaks. A hole, notch, or sharp corner makes the local stress <b>much higher</b> at the feature. Sharpen the notch and watch K_t — and the peak stress — climb. This is why designers round every corner.</div>
+<div id="main">
+  <div id="left">
+    <h2>Controls</h2>
+    <div class="ctl"><div class="top"><span class="nm">Nominal stress σ₀</span><span class="val" id="vS">100 MPa</span></div>
+      <input type="range" id="S" min="20" max="300" value="100" step="5"></div>
+    <div class="ctl"><div class="top"><span class="nm">Notch tip radius ρ</span><span class="val" id="vR">sharp</span></div>
+      <input type="range" id="R" min="4" max="100" value="20"></div>
+    <div class="btns">
+      <button data-p="8">Sharp crack</button>
+      <button data-p="30">Small notch</button>
+      <button data-p="90">Generous fillet</button>
+    </div>
+    <div class="rd"><span>stress-concentration factor K_t</span><b id="rK">—</b></div>
+    <div class="rd"><span>peak stress σ_max = K_t·σ₀</span><b id="rM">—</b></div>
+    <div class="badge" id="badge">—</div>
+  </div>
+  <div id="right">
+    <canvas id="cv" width="460" height="380"></canvas>
+  </div>
+</div>
+<div class="disc">Uses the elliptical-flaw estimate K_t ≈ 1 + 2√(a/ρ) with a fixed flaw half-width a. Illustrative — real K_t depends on the exact geometry — but the trend (sharper ρ → larger K_t, without bound) is the real physics behind "round your corners."</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,H=cv.height;
+cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+let S=100,R=20;
+const A=1.0;                 // flaw half-width (relative)
+function Kt(){const rho=R/100*1.0; return 1+2*Math.sqrt(A/rho);}
+function draw(){
+  const kt=Kt(), smax=kt*S;
+  ctx.clearRect(0,0,W,H);
+  const px=40,py=40,pw=W-80,ph=H-80;
+  ctx.fillStyle="#EDF1F7";ctx.strokeStyle="#2E5496";ctx.lineWidth=1.5;
+  ctx.fillRect(px,py,pw,ph);ctx.strokeRect(px,py,pw,ph);
+  // notch: an ellipse cut from the left edge, tip radius maps to ellipse b
+  const cx=px+pw*0.5, cy=py+ph*0.5;
+  const b=6+(R/100)*70;   // vertical half-height (bluntness)
+  const a=90;             // horizontal depth
+  ctx.fillStyle="#fff";ctx.beginPath();ctx.ellipse(cx,cy,a,b,0,0,7);ctx.fill();
+  ctx.strokeStyle="#1F3864";ctx.lineWidth=1.8;ctx.stroke();
+  // stress "flow" lines crowding at the tips (top & bottom of ellipse)
+  const nlines=12;
+  for(let i=0;i<nlines;i++){
+    const y0=py+8+(ph-16)*i/(nlines-1);
+    ctx.beginPath();
+    for(let x=px;x<=px+pw;x+=4){
+      const dy=(cy-y0);
+      const near=Math.exp(-(((x-cx)/(a*1.1))**2));
+      const push= (b+18)*near*Math.sign(dy||1)*(1-Math.exp(-Math.abs(dy)/50));
+      let yy=y0+push;
+      if(x===px)ctx.moveTo(x,yy);else ctx.lineTo(x,yy);
+    }
+    const nearTip=Math.abs(y0-cy)<b+30;
+    ctx.strokeStyle=nearTip?"#B85042":"#9FB2D6";ctx.lineWidth=nearTip?1.8:1.0;ctx.stroke();
+  }
+  // hot spots at tips
+  const heat=Math.min(1,(kt-1)/9);
+  for(const ty of [cy-b,cy+b]){
+    const g=ctx.createRadialGradient(cx,ty,1,cx,ty,16+heat*10);
+    g.addColorStop(0,`rgba(184,80,66,${0.5+0.4*heat})`);g.addColorStop(1,"rgba(184,80,66,0)");
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,ty,16+heat*10,0,7);ctx.fill();
+  }
+  // load arrows
+  ctx.strokeStyle="#1F3864";ctx.fillStyle="#1F3864";ctx.lineWidth=3;
+  arrow(12,cy,px-4,cy);arrow(px+pw+4,cy,W-12,cy);
+  ctx.font="bold 14px Cambria";ctx.textAlign="center";ctx.fillText("σ₀",22,cy-8);
+  ctx.fillStyle="#B85042";ctx.font="bold 11px Calibri";ctx.fillText("σ_max here",cx,cy-b-16);
+  // readouts
+  $('rK').textContent=kt.toFixed(1);
+  $('rM').textContent=smax.toFixed(0)+" MPa";
+  const b2=$('badge');
+  if(kt>6){b2.textContent="very sharp → stress amplified "+kt.toFixed(0)+"×";b2.style.background="#FBECE9";b2.style.color="#B85042";}
+  else if(kt>3){b2.textContent="moderate concentration ("+kt.toFixed(1)+"×)";b2.style.background="#FBEFE0";b2.style.color="#8a5200";}
+  else{b2.textContent="well rounded → low concentration ("+kt.toFixed(1)+"×)";b2.style.background="#E7F1EC";b2.style.color="#1F7A63";}
+  $('vR').textContent=R<25?"sharp":R<60?"moderate":"rounded";
+}
+function arrow(x0,y0,x1,y1){ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
+  const a=Math.atan2(y1-y0,x1-x0),h=8;ctx.beginPath();ctx.moveTo(x1,y1);
+  ctx.lineTo(x1-h*Math.cos(a-0.4),y1-h*Math.sin(a-0.4));ctx.lineTo(x1-h*Math.cos(a+0.4),y1-h*Math.sin(a+0.4));ctx.closePath();ctx.fill();}
+$('S').oninput=e=>{S=+e.target.value;$('vS').textContent=S+" MPa";draw();};
+$('R').oninput=e=>{R=+e.target.value;draw();};
+document.querySelectorAll('button[data-p]').forEach(b=>b.onclick=()=>{R=+b.dataset.p;$('R').value=R;draw();});
+draw();
+</script>
+</body>
+</html>
