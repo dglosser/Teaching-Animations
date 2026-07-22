@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TTT Explorer — Isothermal Transformation</title>
+<style>
+  :root{
+    --navy:#1F3864; --terra:#B85042; --teal:#1F7A63; --amber:#E8890C;
+    --purp:#6D4C7D; --steel:#2E5496; --slate:#3F4A5A; --mut:#6B7480;
+    --line:#C7CFDA; --ice:#D9E1F2; --light:#F1F4F8; --bg:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--slate);
+    font-family:Calibri,'Segoe UI',system-ui,sans-serif;line-height:1.45;}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 20px 40px;}
+  h1{font-family:Cambria,Georgia,serif;color:var(--navy);font-size:26px;margin:2px 0 2px;}
+  .sub{color:var(--mut);font-size:15px;margin:0 0 14px;}
+  .stage{background:var(--light);border:1px solid var(--line);border-radius:12px;
+    padding:14px 14px 8px;display:flex;gap:18px;flex-wrap:wrap;}
+  .canvaswrap{flex:1 1 560px;min-width:340px;}
+  canvas{width:100%;height:auto;display:block;border-radius:8px;background:#fff;}
+  .panel{flex:1 1 300px;min-width:280px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .card h3{margin:0 0 6px;font-family:Cambria,serif;font-size:16px;color:var(--navy);}
+  .big{font-size:22px;font-weight:bold;font-family:Cambria,serif;}
+  .row{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;border-bottom:1px dashed #e6ebf2;}
+  .row:last-child{border-bottom:none;}
+  .row .k{color:var(--mut);font-size:13.5px;}
+  .row .v{font-weight:bold;font-size:15px;}
+  .prodname{font-size:20px;font-weight:bold;font-family:Cambria,serif;}
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;color:#fff;font-size:12.5px;font-weight:bold;}
+  .hint{font-size:13px;color:var(--mut);margin:8px 2px 0;}
+  .ctrls{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:10px 2px 4px;}
+  .ctrls label{font-size:13.5px;color:var(--slate);}
+  .barwrap{height:12px;background:var(--light);border-radius:8px;overflow:hidden;border:1px solid var(--line);margin-top:4px;}
+  .bar{height:100%;width:0%;background:linear-gradient(90deg,var(--teal),var(--steel));transition:width .1s;}
+  b.term{color:var(--navy);}
+  .legend{font-size:12.5px;color:var(--mut);margin-top:6px;}
+  .legend span{display:inline-block;margin-right:12px;white-space:nowrap;}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:3px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>TTT Explorer — hold at a temperature, watch what forms</h1>
+  <p class="sub">A <b>Time–Temperature–Transformation</b> diagram for eutectoid steel (0.76 wt% C).
+     Drag the <b style="color:var(--terra)">temperature line</b> up/down and the
+     <b style="color:var(--navy)">hold-time cursor</b> left/right. Same steel every time — only the path changes the result.</p>
+
+  <div class="stage">
+    <div class="canvaswrap">
+      <canvas id="cv" width="720" height="560"></canvas>
+      <div class="legend">
+        <span><span class="sw" style="background:#E9F0F8"></span>austenite (not yet transformed)</span>
+        <span><span class="sw" style="background:#EAF3EF"></span>product formed</span>
+        <span><span class="sw" style="background:var(--navy)"></span>start / <span style="border-bottom:2px dashed var(--navy)">finish</span></span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Your isothermal hold</h3>
+        <div class="row"><span class="k">Hold temperature</span><span class="v" id="oT" style="color:var(--terra)">—</span></div>
+        <div class="row"><span class="k">Hold time</span><span class="v" id="ot">—</span></div>
+        <div class="row"><span class="k">Fraction transformed</span><span class="v" id="ofrac">—</span></div>
+        <div class="barwrap"><div class="bar" id="obar"></div></div>
+      </div>
+      <div class="card">
+        <h3>What you made</h3>
+        <div class="prodname" id="oprod">—</div>
+        <div class="row" style="margin-top:6px"><span class="k">Approx. hardness</span><span class="v" id="ohard">—</span></div>
+        <div class="row"><span class="k">Character</span><span class="v" id="ochar" style="font-weight:600;font-size:13.5px">—</span></div>
+        <div id="oexpl" class="hint"></div>
+      </div>
+    </div>
+  </div>
+  <p class="hint"><b class="term">How to read it:</b> you quench instantly to the hold temperature (vertical drop), then hold (move right in time).
+     Transformation begins where the path crosses the <b>solid</b> curve and is complete at the <b>dashed</b> curve.
+     Cross below <b style="color:var(--purp)">M<sub>s</sub></b> and the austenite shears straight to <b>martensite</b> — no waiting required.</p>
+</div>
+
+<script>
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const CSS={navy:'#1F3864',terra:'#B85042',teal:'#1F7A63',amber:'#E8890C',purp:'#6D4C7D',steel:'#2E5496',slate:'#3F4A5A',mut:'#6B7480',line:'#C7CFDA',ice:'#D9E1F2',light:'#F1F4F8'};
+
+// ---- shared TTT C-curve model (matches lecture figure) ----
+const Tnose=550, Ms=220, Mf=90, Teu=727;
+function logtStart(T){
+  if(T>=Tnose) return 2.6*Math.pow((T-Tnose)/(Teu-Tnose),2);
+  return 2.2*Math.pow((Tnose-T)/(Tnose-Ms),2);
+}
+function logtFinish(T){ return logtStart(T)+0.9; }
+
+// ---- plot frame ----
+const X0=-1, X1=5.6;      // log10 seconds
+const Ya=20, Yb=800;      // temperature axis
+let W=720,H=560, M={l:64,r:20,t:20,b:56};
+function px(x){ return M.l + (x-X0)/(X1-X0)*(W-M.l-M.r); }
+function py(T){ return H-M.b - (T-Ya)/(Yb-Ya)*(H-M.t-M.b); }
+function ux(p){ return X0 + (p-M.l)/(W-M.l-M.r)*(X1-X0); }
+function uy(p){ return Ya + (H-M.b-p)/(H-M.t-M.b)*(Yb-Ya); }
+
+// state: hold temperature and hold-time (log)
+let holdT=680, holdLt=2.4;
+
+function fmtTime(lt){
+  const s=Math.pow(10,lt);
+  if(s<60) return s.toFixed(s<10?1:0)+' s';
+  if(s<3600) return (s/60).toFixed(1)+' min';
+  if(s<86400) return (s/3600).toFixed(1)+' h';
+  return (s/86400).toFixed(1)+' days';
+}
+
+function product(T){
+  // returns {name,color,hard,char,expl}
+  if(T<=Ms){
+    return {name:'Martensite',color:CSS.purp,hard:'~64 HRC',char:'very hard, brittle',
+      expl:'Below Mₛ the austenite shears to a strained BCT lattice with no diffusion. Hardness is set the instant you cross the line.'};
+  }
+  if(T>=650) return {name:'Coarse pearlite',color:CSS.teal,hard:'~15 HRC',char:'soft, ductile',
+      expl:'Hot and slow: carbon diffuses easily, so the ferrite/cementite layers grow thick and widely spaced — soft and tough.'};
+  if(T>=Tnose) return {name:'Fine pearlite',color:CSS.steel,hard:'~30 HRC',char:'medium strength',
+      expl:'Cooler: less diffusion means thinner, more closely spaced layers. More interface area blocks dislocations, so it is stronger.'};
+  if(T>=400) return {name:'Upper bainite',color:CSS.amber,hard:'~43 HRC',char:'strong, fair toughness',
+      expl:'Below the nose, diffusion is sluggish: feathery ferrite laths with carbide between them. Fine scale = high strength.'};
+  return {name:'Lower bainite',color:CSS.amber,hard:'~48 HRC',char:'strong and tough',
+      expl:'Just above Mₛ: needle-like ferrite with very fine carbides inside the laths — an excellent strength/toughness balance.'};
+}
+
+function fractionTransformed(T,lt){
+  if(T<=Ms){
+    // athermal martensite (Koistinen-Marburger), independent of hold time
+    const f=1-Math.exp(-0.035*(Ms-T));
+    return Math.max(0,Math.min(1,f));
+  }
+  const s=logtStart(T), f=logtFinish(T);
+  if(lt<=s) return 0;
+  if(lt>=f) return 1;
+  return (lt-s)/(f-s);
+}
+
+function draw(){
+  const dpr=window.devicePixelRatio||1;
+  const cssW=cv.clientWidth||720; const cssH=cssW*(H/W);
+  cv.width=cssW*dpr; cv.height=cssH*dpr;
+  W=cssW; H=cssH;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.font='12px Calibri, sans-serif';
+
+  // field fills
+  const Tp=[]; for(let T=Ms; T<=Teu; T+=3) Tp.push(T);
+  // austenite (left of start)
+  ctx.fillStyle='#E9F0F8';
+  ctx.beginPath(); ctx.moveTo(px(X0),py(Ms));
+  for(const T of Tp) ctx.lineTo(px(logtStart(T)),py(T));
+  ctx.lineTo(px(X0),py(Teu)); ctx.closePath(); ctx.fill();
+  // product (right of finish)
+  ctx.fillStyle='#EAF3EF';
+  ctx.beginPath(); ctx.moveTo(px(X1),py(Ms));
+  for(const T of Tp) ctx.lineTo(px(logtFinish(T)),py(T));
+  ctx.lineTo(px(X1),py(Teu)); ctx.closePath(); ctx.fill();
+
+  // eutectoid line
+  ctx.strokeStyle=CSS.mut; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(px(X0),py(Teu)); ctx.lineTo(px(X1),py(Teu)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle=CSS.mut; ctx.textAlign='left';
+  ctx.fillText('727°C  eutectoid  (austenite above)',px(X0)+6,py(Teu)-6);
+
+  // Ms / Mf
+  for(const [Tl,lab,c] of [[Ms,'Mₛ  martensite start',CSS.purp],[Mf,'M_f  martensite finish',CSS.purp]]){
+    ctx.strokeStyle=c; ctx.lineWidth=1.6; ctx.setLineDash([6,4]);
+    ctx.beginPath(); ctx.moveTo(px(X0),py(Tl)); ctx.lineTo(px(X1),py(Tl)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=c; ctx.fillText(lab+' ('+Tl+'°C)',px(X0)+6,py(Tl)-5);
+  }
+  // martensite band shading
+  ctx.fillStyle='rgba(109,76,125,0.10)';
+  ctx.fillRect(px(X0),py(Ms),W-M.l-M.r,py(Ya)-py(Ms));
+
+  // C-curves
+  const drawCurve=(fn,dash)=>{
+    ctx.strokeStyle=CSS.navy; ctx.lineWidth=2.4; ctx.setLineDash(dash);
+    ctx.beginPath(); let first=true;
+    for(const T of Tp){ const X=px(fn(T)),Y=py(T); if(first){ctx.moveTo(X,Y);first=false;} else ctx.lineTo(X,Y);}
+    ctx.stroke(); ctx.setLineDash([]);
+  };
+  drawCurve(logtStart,[]); drawCurve(logtFinish,[6,4]);
+  // nose label
+  ctx.fillStyle=CSS.terra; ctx.textAlign='left';
+  ctx.font='bold 12px Calibri'; ctx.fillText('← the "nose" (fastest)',px(logtStart(Tnose))+8,py(Tnose)+4);
+  ctx.font='12px Calibri';
+
+  // axes
+  ctx.strokeStyle=CSS.slate; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(M.l,M.t); ctx.lineTo(M.l,H-M.b); ctx.lineTo(W-M.r,H-M.b); ctx.stroke();
+  ctx.fillStyle=CSS.slate; ctx.textAlign='center';
+  // x ticks (decades)
+  for(let d=Math.ceil(X0); d<=Math.floor(X1); d++){
+    const X=px(d); ctx.strokeStyle='#eef2f7';
+    ctx.beginPath(); ctx.moveTo(X,M.t); ctx.lineTo(X,H-M.b); ctx.stroke();
+    ctx.fillStyle=CSS.mut; ctx.fillText('10'+supr(d),X,H-M.b+16);
+  }
+  ctx.fillStyle=CSS.slate; ctx.font='13px Calibri';
+  ctx.fillText('time (seconds, log scale)  →',(M.l+W-M.r)/2,H-8);
+  // y ticks
+  ctx.textAlign='right';
+  for(let T=100;T<=800;T+=100){ const Y=py(T); ctx.fillStyle=CSS.mut; ctx.fillText(T,M.l-8,Y+4);}
+  ctx.save(); ctx.translate(16,(M.t+H-M.b)/2); ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center'; ctx.fillStyle=CSS.slate; ctx.font='13px Calibri';
+  ctx.fillText('temperature (°C)',0,0); ctx.restore();
+  ctx.font='12px Calibri';
+
+  // ---- user path: quench down to holdT, then hold to holdLt ----
+  const belowMs = holdT<=Ms;
+  ctx.strokeStyle=CSS.terra; ctx.lineWidth=2.6;
+  // vertical quench from top
+  ctx.beginPath(); ctx.moveTo(px(X0+0.15),py(Teu+40)); ctx.lineTo(px(X0+0.15),py(holdT)); ctx.stroke();
+  // horizontal hold line
+  ctx.beginPath(); ctx.moveTo(px(X0+0.15),py(holdT)); ctx.lineTo(px(holdLt),py(holdT)); ctx.stroke();
+  // arrowhead
+  ctx.fillStyle=CSS.terra;
+  const ax=px(holdLt), ay=py(holdT);
+  ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(ax-8,ay-4); ctx.lineTo(ax-8,ay+4); ctx.closePath(); ctx.fill();
+
+  // temperature handle (left)
+  ctx.fillStyle=CSS.terra; ctx.beginPath(); ctx.arc(px(X0+0.15),py(holdT),7,0,7); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='bold 10px Calibri'; ctx.textAlign='center'; ctx.fillText('↕',px(X0+0.15),py(holdT)+3);
+  // time cursor dot
+  ctx.fillStyle=CSS.navy; ctx.beginPath(); ctx.arc(ax,ay,7,0,7); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.fillText('↔',ax,ay+3);
+  ctx.font='12px Calibri';
+
+  updateReadout();
+}
+function supr(n){const m={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵'};return (''+n).split('').map(c=>m[c]||c).join('');}
+
+function updateReadout(){
+  const prod=product(holdT);
+  const frac=fractionTransformed(holdT,holdLt);
+  document.getElementById('oT').textContent=Math.round(holdT)+' °C';
+  document.getElementById('ot').textContent=fmtTime(holdLt);
+  const belowMs=holdT<=Ms;
+  let fracTxt=(frac*100).toFixed(0)+'%';
+  document.getElementById('ofrac').textContent=fracTxt+(belowMs?' martensite':(frac>=1?' (complete)':frac<=0?' (still austenite)':' product'));
+  document.getElementById('obar').style.width=(frac*100)+'%';
+  // product only "made" if some transformed; else austenite retained
+  const op=document.getElementById('oprod');
+  if(!belowMs && frac<=0){
+    op.innerHTML='Untransformed austenite';
+    document.getElementById('ohard').textContent='soft (unstable)';
+    document.getElementById('ochar').textContent='not held long enough';
+    document.getElementById('oexpl').textContent='Your hold ends before the transformation even starts — cool now and this leftover austenite becomes martensite.';
+  } else {
+    op.innerHTML='<span style="color:'+prod.color+'">'+prod.name+'</span>'+(!belowMs&&frac<1?' (partial)':'');
+    document.getElementById('ohard').textContent=prod.hard;
+    document.getElementById('ochar').textContent=prod.char;
+    document.getElementById('oexpl').textContent=prod.expl;
+  }
+}
+
+// ---- interaction ----
+let drag=null;
+function evtPos(e){
+  const r=cv.getBoundingClientRect();
+  const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+  const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+  return {x:cx*(W/r.width), y:cy*(H/r.height)};
+}
+function pick(p){
+  const tempH={x:px(X0+0.15),y:py(holdT)};
+  const timeH={x:px(holdLt),y:py(holdT)};
+  const dT=Math.hypot(p.x-tempH.x,p.y-tempH.y);
+  const dt=Math.hypot(p.x-timeH.x,p.y-timeH.y);
+  if(dT<22 && dT<=dt) return 'temp';
+  if(dt<22) return 'time';
+  // clicking on hold line grabs time; elsewhere near left grabs temp
+  return null;
+}
+function onDown(e){ const p=evtPos(e); drag=pick(p);
+  if(!drag){ // start a fresh hold at click
+    holdT=Math.max(Mf-20,Math.min(760,uy(p.y)));
+    holdLt=Math.max(X0,Math.min(X1,ux(p.x)));
+    drag='time'; }
+  e.preventDefault(); draw(); }
+function onMove(e){ if(!drag) return; const p=evtPos(e);
+  if(drag==='temp'){ holdT=Math.max(Mf-20,Math.min(760,uy(p.y))); }
+  else { holdLt=Math.max(X0,Math.min(X1,ux(p.x))); holdT=Math.max(Mf-20,Math.min(760,uy(p.y))); }
+  e.preventDefault(); draw(); }
+function onUp(){ drag=null; }
+cv.addEventListener('mousedown',onDown); window.addEventListener('mousemove',onMove); window.addEventListener('mouseup',onUp);
+cv.addEventListener('touchstart',onDown,{passive:false}); cv.addEventListener('touchmove',onMove,{passive:false}); window.addEventListener('touchend',onUp);
+window.addEventListener('resize',draw);
+draw();
+</script>
+</body>
+</html>

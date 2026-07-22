@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Age-Hardening Explorer</title>
+<style>
+  :root{--navy:#1F3864;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;--purp:#6D4C7D;--steel:#2E5496;--slate:#3F4A5A;--mut:#6B7480;--line:#C7CFDA;--ice:#D9E1F2;--light:#F1F4F8;--bg:#FFFFFF;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--slate);font-family:Calibri,'Segoe UI',system-ui,sans-serif;line-height:1.45;}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 20px 40px;}
+  h1{font-family:Cambria,Georgia,serif;color:var(--navy);font-size:26px;margin:2px 0 2px;}
+  .sub{color:var(--mut);font-size:15px;margin:0 0 14px;}
+  .stage{background:var(--light);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:18px;flex-wrap:wrap;}
+  .canvaswrap{flex:1 1 560px;min-width:340px;}
+  canvas{width:100%;height:auto;display:block;border-radius:8px;background:#fff;}
+  .panel{flex:1 1 300px;min-width:280px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .card h3{margin:0 0 6px;font-family:Cambria,serif;font-size:16px;color:var(--navy);}
+  .row{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;border-bottom:1px dashed #e6ebf2;} .row:last-child{border-bottom:none;}
+  .row .k{color:var(--mut);font-size:13.5px;} .row .v{font-weight:bold;font-size:15px;}
+  .stage-name{font-size:20px;font-weight:bold;font-family:Cambria,serif;}
+  .hint{font-size:13px;color:var(--mut);margin:8px 2px 0;} b.term{color:var(--navy);}
+  .slider{margin:12px 2px 2px;} .slider label{font-size:13.5px;display:block;margin-bottom:2px;}
+  input[type=range]{width:100%;accent-color:var(--terra);}
+  #micro{border:1px solid var(--line);border-radius:8px;background:#fff;margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Age-Hardening Explorer — grow precipitates to peak strength, then overshoot</h1>
+  <p class="sub">An aluminium alloy after solution-treat + quench. Set the <b style="color:var(--terra)">aging temperature</b> and drag the
+     <b style="color:var(--navy)">time cursor</b>. Watch the precipitates coarsen and the strength peak, then fall. Same alloy — the schedule sets the strength.</p>
+
+  <div class="stage">
+    <div class="canvaswrap">
+      <canvas id="cv" width="720" height="440"></canvas>
+      <div class="slider">
+        <label>Aging temperature: <b id="tlab" style="color:var(--terra)">190 °C</b> &nbsp;<span style="color:var(--mut)">(hotter = faster peak, but a lower peak)</span></label>
+        <input type="range" id="tsl" min="150" max="230" value="190" step="5">
+      </div>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Precipitate state</h3>
+        <canvas id="micro" width="300" height="90"></canvas>
+        <div class="stage-name" id="ostage" style="margin-top:6px">—</div>
+      </div>
+      <div class="card">
+        <h3>Readout</h3>
+        <div class="row"><span class="k">Aging time</span><span class="v" id="otime">—</span></div>
+        <div class="row"><span class="k">Time to peak</span><span class="v" id="opeak">—</span></div>
+        <div class="row"><span class="k">Yield strength</span><span class="v" id="ostr" style="color:var(--steel)">—</span></div>
+        <div id="oexpl" class="hint"></div>
+      </div>
+    </div>
+  </div>
+  <p class="hint"><b class="term">Why it peaks:</b> fine coherent particles are the hardest to cut, so dislocations must bow around them.
+     Keep aging and the particles coarsen and spread apart (Ostwald ripening) — dislocations bow through the wider gaps more easily, so strength falls. <b>Over-aging</b> is too much of a good thing.</p>
+</div>
+
+<script>
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const mc=document.getElementById('micro'), mx=mc.getContext('2d');
+const CSS={navy:'#1F3864',terra:'#B85042',teal:'#1F7A63',amber:'#E8890C',purp:'#6D4C7D',steel:'#2E5496',slate:'#3F4A5A',mut:'#6B7480',line:'#C7CFDA',ice:'#D9E1F2',light:'#F1F4F8'};
+
+let Ta=190;            // aging temperature °C
+let logt=1.0;          // log10 hours
+const X0=-1, X1=3;     // 0.1 h to 1000 h
+const base=150;        // MPa as-quenched
+
+function tPeak(Ta){ return 10*Math.exp(9000*(1/(Ta+273)-1/463)); }      // hours
+function deltaPeak(Ta){ return 350-1.2*(Ta-150); }                       // MPa increment at peak
+function strength(t,Ta){ const tp=tPeak(Ta), tau=t/tp; const f=2*Math.sqrt(tau)/(1+tau); return base+deltaPeak(Ta)*f; }
+
+let W=720,H=440, M={l:60,r:20,t:22,b:52};
+function px(x){ return M.l+(x-X0)/(X1-X0)*(W-M.l-M.r); }
+const Smax=520, Smin=100;
+function py(S){ return H-M.b-(S-Smin)/(Smax-Smin)*(H-M.t-M.b); }
+function ux(p){ return X0+(p-M.l)/(W-M.l-M.r)*(X1-X0); }
+
+function stageOf(t){ const tp=tPeak(Ta), r=t/tp;
+  if(r<0.55) return {n:'Under-aged',c:CSS.teal,expl:'Precipitates are still tiny and few. They are easy to cut, so strengthening is incomplete — keep aging.'};
+  if(r<1.8) return {n:'Peak-aged',c:CSS.amber,expl:'Finest effective spacing of coherent precipitates. Dislocations can neither cut them cleanly nor bow past easily — maximum strength.'};
+  return {n:'Over-aged',c:CSS.terra,expl:'Particles have coarsened and spread apart. Dislocations bow through the wide gaps (Orowan looping) — strength drops back down.'};
+}
+
+function draw(){
+  const dpr=window.devicePixelRatio||1; const cssW=cv.clientWidth||720, cssH=cssW*(H/W);
+  cv.width=cssW*dpr; cv.height=cssH*dpr; W=cssW; H=cssH; ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H); ctx.font='12px Calibri';
+
+  const tp=tPeak(Ta), ltp=Math.log10(tp);
+  // region shading
+  ctx.fillStyle='#EAF3EF'; ctx.fillRect(px(X0),M.t,px(Math.log10(tp*0.55))-px(X0),H-M.b-M.t);
+  ctx.fillStyle='#FBF1E3'; ctx.fillRect(px(Math.log10(tp*0.55)),M.t,px(Math.log10(tp*1.8))-px(Math.log10(tp*0.55)),H-M.b-M.t);
+  ctx.fillStyle='#F7EBE9'; ctx.fillRect(px(Math.log10(tp*1.8)),M.t,px(X1)-px(Math.log10(tp*1.8)),H-M.b-M.t);
+  ctx.fillStyle=CSS.mut; ctx.textAlign='center';
+  ctx.fillText('under-aged',(px(X0)+px(Math.log10(tp*0.55)))/2,M.t+16);
+  ctx.fillText('peak',(px(Math.log10(tp*0.55))+px(Math.log10(tp*1.8)))/2,M.t+16);
+  ctx.fillText('over-aged',(px(Math.log10(tp*1.8))+px(X1))/2,M.t+16);
+
+  // strength curve
+  ctx.strokeStyle=CSS.navy; ctx.lineWidth=2.8; ctx.beginPath();
+  for(let i=0;i<=200;i++){ const lt=X0+(X1-X0)*i/200; const S=strength(Math.pow(10,lt),Ta); const X=px(lt),Y=py(S); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);} ctx.stroke();
+  // peak marker
+  ctx.fillStyle=CSS.amber; ctx.beginPath(); ctx.arc(px(ltp),py(strength(tp,Ta)),5,0,7); ctx.fill();
+
+  // axes
+  ctx.strokeStyle=CSS.slate; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(M.l,M.t); ctx.lineTo(M.l,H-M.b); ctx.lineTo(W-M.r,H-M.b); ctx.stroke();
+  ctx.textAlign='center';
+  for(let d=X0;d<=X1;d++){ const X=px(d); ctx.fillStyle=CSS.mut; const h=Math.pow(10,d); ctx.fillText(h<1?h.toFixed(1):h.toFixed(0),X,H-M.b+16);}
+  ctx.fillStyle=CSS.slate; ctx.font='13px Calibri'; ctx.fillText('aging time (hours, log scale) →',(M.l+W-M.r)/2,H-8);
+  ctx.textAlign='right'; ctx.font='12px Calibri';
+  for(let S=100;S<=500;S+=100){const Y=py(S); ctx.fillStyle=CSS.mut; ctx.fillText(S,M.l-8,Y+4);}
+  ctx.save(); ctx.translate(15,(M.t+H-M.b)/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillStyle=CSS.slate; ctx.font='13px Calibri'; ctx.fillText('yield strength (MPa)',0,0); ctx.restore(); ctx.font='12px Calibri';
+
+  // time cursor
+  const t=Math.pow(10,logt), S=strength(t,Ta), st=stageOf(t);
+  ctx.strokeStyle=st.c; ctx.lineWidth=1.6; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(px(logt),M.t); ctx.lineTo(px(logt),H-M.b); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle=st.c; ctx.beginPath(); ctx.arc(px(logt),py(S),8,0,7); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.font='bold 11px Calibri'; ctx.fillText('↔',px(logt),py(S)+4); ctx.font='12px Calibri';
+
+  drawMicro(t); updateReadout(t,S,st);
+}
+
+function drawMicro(t){
+  const dpr=window.devicePixelRatio||1; const w=mc.clientWidth||300,h=90;
+  mc.width=w*dpr; mc.height=h*dpr; mx.setTransform(dpr,0,0,dpr,0,0); mx.clearRect(0,0,w,h);
+  const tp=tPeak(Ta), r=t/tp;
+  // particle radius grows ~ t^(1/3); number falls to conserve volume
+  const rad=3+6*Math.cbrt(Math.max(0.05,r));       // px
+  const spacing=18+22*Math.cbrt(Math.max(0.05,r)); // px
+  mx.fillStyle='#F4F7FB'; mx.fillRect(0,0,w,h);
+  const st=stageOf(t);
+  mx.fillStyle=st.c; mx.strokeStyle='#fff'; mx.lineWidth=1;
+  for(let y=spacing/2;y<h;y+=spacing) for(let x=spacing/2;x<w;x+=spacing){
+    mx.beginPath(); mx.arc(x+((y/spacing|0)%2?spacing/2:0),y,rad,0,7); mx.fill();
+  }
+}
+
+function updateReadout(t,S,st){
+  document.getElementById('otime').textContent=(t<1?(t*60).toFixed(0)+' min':t.toFixed(t<10?1:0)+' h');
+  document.getElementById('opeak').textContent=tPeak(Ta).toFixed(1)+' h';
+  document.getElementById('ostr').textContent=S.toFixed(0)+' MPa';
+  document.getElementById('ostage').innerHTML='<span style="color:'+st.c+'">'+st.n+'</span>';
+  document.getElementById('oexpl').textContent=st.expl;
+}
+
+document.getElementById('tsl').addEventListener('input',e=>{ Ta=+e.target.value; document.getElementById('tlab').textContent=Ta+' °C'; draw(); });
+let drag=false;
+function evtPos(e){ const r=cv.getBoundingClientRect(); const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left; return cx*(W/r.width); }
+function setT(e){ logt=Math.max(X0,Math.min(X1,ux(evtPos(e)))); draw(); }
+cv.addEventListener('mousedown',e=>{drag=true;setT(e);e.preventDefault();});
+window.addEventListener('mousemove',e=>{if(drag){setT(e);e.preventDefault();}});
+window.addEventListener('mouseup',()=>drag=false);
+cv.addEventListener('touchstart',e=>{drag=true;setT(e);e.preventDefault();},{passive:false});
+cv.addEventListener('touchmove',e=>{if(drag){setT(e);e.preventDefault();}},{passive:false});
+window.addEventListener('touchend',()=>drag=false);
+window.addEventListener('resize',draw);
+draw();
+</script>
+</body>
+</html>

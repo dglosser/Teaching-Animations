@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heat-Treatment Outcome Simulator</title>
+<style>
+  :root{--navy:#1F3864;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;--purp:#6D4C7D;--steel:#2E5496;--slate:#3F4A5A;--mut:#6B7480;--line:#C7CFDA;--ice:#D9E1F2;--light:#F1F4F8;--bg:#FFFFFF;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--slate);font-family:Calibri,'Segoe UI',system-ui,sans-serif;line-height:1.45;}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 20px 40px;}
+  h1{font-family:Cambria,Georgia,serif;color:var(--navy);font-size:26px;margin:2px 0 2px;}
+  .sub{color:var(--mut);font-size:15px;margin:0 0 14px;}
+  .stage{display:flex;gap:18px;flex-wrap:wrap;}
+  .col{flex:1 1 320px;min-width:300px;background:var(--light);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  h3{font-family:Cambria,serif;color:var(--navy);font-size:17px;margin:0 0 10px;}
+  .step{margin-bottom:16px;}
+  .step .lbl{font-size:14px;font-weight:bold;color:var(--slate);margin-bottom:6px;}
+  .opts{display:flex;gap:8px;flex-wrap:wrap;}
+  .opts button{font-family:Calibri;font-size:13.5px;border:1.5px solid var(--line);background:#fff;color:var(--slate);border-radius:8px;padding:7px 12px;cursor:pointer;flex:1 1 auto;}
+  .opts button.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  input[type=range]{width:100%;accent-color:var(--terra);}
+  .tval{font-weight:bold;color:var(--terra);}
+  #micro{border:1px solid var(--line);border-radius:8px;background:#fff;width:100%;height:auto;margin-top:4px;}
+  .result .name{font-size:23px;font-weight:bold;font-family:Cambria,serif;margin-bottom:2px;}
+  .bars{margin:12px 0 6px;}
+  .metric{margin-bottom:9px;}
+  .metric .top{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:3px;}
+  .metric .top b{font-size:15px;}
+  .track{height:14px;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .fill{height:100%;width:0;transition:width .25s;}
+  .use{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13.5px;margin-top:8px;}
+  .use b{color:var(--navy);}
+  .why{font-size:13px;color:var(--mut);margin-top:8px;}
+  .note{font-size:12.5px;color:var(--mut);margin-top:4px;}
+  b.term{color:var(--navy);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Heat-Treatment Simulator — build a process, get a part</h1>
+  <p class="sub">Start from red-hot austenite (0.76% C steel). Pick <b>how you cool</b>, then <b>how you temper</b>.
+     The same steel becomes a soft blank, a spring, or a glass-hard file depending only on this schedule.</p>
+
+  <div class="stage">
+    <div class="col">
+      <h3>Your process</h3>
+      <div class="step">
+        <div class="lbl">1 · Cool from austenite</div>
+        <div class="opts" id="coolOpts">
+          <button data-c="furnace">Furnace<br><small>anneal</small></button>
+          <button data-c="air" class="on">Still air<br><small>normalize</small></button>
+          <button data-c="oil">Oil<br><small>quench</small></button>
+          <button data-c="water">Water<br><small>quench</small></button>
+        </div>
+      </div>
+      <div class="step">
+        <div class="lbl">2 · Temper (reheat &amp; hold): <span class="tval" id="tlab">none</span></div>
+        <input type="range" id="tsl" min="0" max="650" step="25" value="0">
+        <div class="note" id="tnote">Tempering only reshapes a quenched (martensitic) structure — it relaxes brittle martensite into tough tempered martensite.</div>
+      </div>
+      <div class="step">
+        <div class="lbl">Resulting microstructure</div>
+        <canvas id="micro" width="360" height="130"></canvas>
+        <div class="note" id="mnote"></div>
+      </div>
+    </div>
+
+    <div class="col result">
+      <h3>Resulting part</h3>
+      <div class="name" id="rname">—</div>
+      <div class="note" id="rsummary"></div>
+      <div class="bars">
+        <div class="metric"><div class="top"><span>Hardness</span><b id="vhard">—</b></div><div class="track"><div class="fill" id="fhard" style="background:var(--terra)"></div></div></div>
+        <div class="metric"><div class="top"><span>Strength</span><b id="vstr">—</b></div><div class="track"><div class="fill" id="fstr" style="background:var(--steel)"></div></div></div>
+        <div class="metric"><div class="top"><span>Toughness</span><b id="vtou">—</b></div><div class="track"><div class="fill" id="ftou" style="background:var(--teal)"></div></div></div>
+        <div class="metric"><div class="top"><span>Ductility</span><b id="vduc">—</b></div><div class="track"><div class="fill" id="fduc" style="background:var(--amber)"></div></div></div>
+      </div>
+      <div class="use"><b>Good for:</b> <span id="ruse"></span></div>
+      <div class="why" id="rwhy"></div>
+    </div>
+  </div>
+  <p class="note" style="margin-top:14px"><b class="term">The universal trade-off:</b> hardness and toughness pull against each other.
+     Quench-and-temper is prized because tempering buys back a lot of toughness while giving up only a little hardness — the "strong <i>and</i> tough" sweet spot.</p>
+</div>
+
+<script>
+const CSS={navy:'#1F3864',terra:'#B85042',teal:'#1F7A63',amber:'#E8890C',purp:'#6D4C7D',steel:'#2E5496',slate:'#3F4A5A',mut:'#6B7480',line:'#C7CFDA',ice:'#D9E1F2',light:'#F1F4F8'};
+let cool='air', temper=0;
+
+// as-cooled base structures
+const COOL={
+  furnace:{struct:'coarse pearlite', hard:15, tough:70, duc:80, str:22, quench:false,
+    micro:'lamellar', color:CSS.teal, why:'Slow furnace cooling gives carbon all the time it needs: thick, widely spaced ferrite/cementite layers. Soft and very machinable.'},
+  air:{struct:'fine pearlite', hard:28, tough:55, duc:55, str:40, quench:false,
+    micro:'lamellar-fine', color:CSS.steel, why:'Air cooling is quicker, so the pearlite layers are thin and closely spaced. More interface blocks dislocations — a decent all-round strength.'},
+  oil:{struct:'martensite + bainite', hard:52, tough:22, duc:18, str:70, quench:true,
+    micro:'mixed', color:CSS.amber, why:'Oil cools fast enough to mostly beat the nose. You get mostly martensite with some bainite — hard, but brittle until tempered.'},
+  water:{struct:'martensite', hard:64, tough:8, duc:4, str:95, quench:true,
+    micro:'needles', color:CSS.purp, why:'Water quench misses the nose entirely: austenite shears straight to strained BCT martensite. Maximum hardness, but glass-brittle as-quenched.'}
+};
+
+function compute(){
+  const b=COOL[cool];
+  let hard=b.hard, tough=b.tough, duc=b.duc, str=b.str, name, struct=b.struct;
+  let tempered=false;
+  if(b.quench && temper>0){
+    tempered=true;
+    const f=temper/650;                       // 0..1
+    hard = b.hard - (b.hard-32)*f;            // hardness falls toward ~32 HRC
+    tough = b.tough + (78-b.tough)*Math.pow(f,0.7); // toughness climbs
+    duc = b.duc + (45-b.duc)*Math.pow(f,0.7);
+    str = b.str - (b.str-55)*f;
+    struct = temper<300?'tempered martensite (low-temp)':'tempered martensite';
+  }
+  // names / uses
+  let use,name2;
+  if(cool==='furnace'){ name2='Annealed blank'; use='machining, cold forming, parts that get hardened later'; }
+  else if(cool==='air'){ name2='Normalized part'; use='general structural use, shafts, gears before finishing'; }
+  else if(!tempered && cool==='oil'){ name2='As-quenched (oil)'; use='needs tempering before use — currently brittle'; }
+  else if(!tempered && cool==='water'){ name2='As-quenched file-hard'; use='files, cutting edges (if brittleness is tolerable)'; }
+  else { // tempered
+    if(temper<250){ name2='Spring / knife temper'; use='springs, knife blades, high-hardness tools'; }
+    else if(temper<450){ name2='Tool temper'; use='chisels, hammers, high-strength tooling'; }
+    else { name2='Structural temper'; use='axles, gears, bolts — tough load-bearing parts'; }
+  }
+  return {name:name2,struct,hard,tough,duc,str,why:b.why,use,tempered,quench:b.quench,microKind:b.micro,color:b.color};
+}
+
+function render(){
+  const r=compute();
+  document.getElementById('rname').textContent=r.name;
+  document.getElementById('rsummary').textContent='microstructure: '+r.struct;
+  const set=(id,val,fillId,max)=>{ document.getElementById(id).textContent = (id==='vhard'? Math.round(val)+' HRC' : label(val)); document.getElementById(fillId).style.width=(val/max*100)+'%'; };
+  document.getElementById('vhard').textContent=Math.round(r.hard)+' HRC';
+  document.getElementById('fhard').style.width=(r.hard/68*100)+'%';
+  document.getElementById('vstr').textContent=label(r.str);
+  document.getElementById('fstr').style.width=r.str+'%';
+  document.getElementById('vtou').textContent=label(r.tough);
+  document.getElementById('ftou').style.width=r.tough+'%';
+  document.getElementById('vduc').textContent=label(r.duc);
+  document.getElementById('fduc').style.width=r.duc+'%';
+  document.getElementById('ruse').textContent=r.use;
+  let why=r.why;
+  if(r.tempered) why+=' Tempering at '+temper+'°C then relaxes the lattice and precipitates fine carbides: you trade a little hardness for a large gain in toughness.';
+  else if(r.quench && temper===0) why+=' Right now it is untempered — hard but dangerously brittle.';
+  document.getElementById('rwhy').textContent=why;
+  drawMicro(r);
+  // temper slider note
+  document.getElementById('tnote').style.opacity=r.quench?1:0.5;
+}
+function label(v){ return v>=80?'very high':v>=60?'high':v>=40?'medium':v>=20?'low':'very low'; }
+
+function drawMicro(r){
+  const c=document.getElementById('micro'), g=c.getContext('2d');
+  const dpr=window.devicePixelRatio||1, w=c.clientWidth||360, h=130;
+  c.width=w*dpr; c.height=h*dpr; g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
+  g.fillStyle='#FBFCFE'; g.fillRect(0,0,w,h);
+  const kind=r.microKind, tempered=r.tempered;
+  if(kind==='lamellar'||kind==='lamellar-fine'){
+    const gap=kind==='lamellar'?11:6;
+    for(let x=6;x<w;x+=gap){ g.strokeStyle=(x/gap|0)%2?CSS.slate:CSS.line; g.lineWidth=kind==='lamellar'?3:1.6;
+      g.beginPath(); g.moveTo(x,8); g.lineTo(x,h-8); g.stroke(); }
+    g.fillStyle=CSS.mut; g.font='11px Calibri'; g.fillText(kind==='lamellar'?'thick lamellae → soft':'fine lamellae → stronger',8,h-4);
+  } else if(kind==='needles'||kind==='mixed'){
+    // martensite needles
+    g.strokeStyle=tempered?CSS.terra:r.color; g.lineWidth=2;
+    for(let i=0;i<26;i++){ const x=10+Math.random()*(w-20), y=10+Math.random()*(h-24), a=Math.random()*Math.PI, L=14+Math.random()*20;
+      g.beginPath(); g.moveTo(x-Math.cos(a)*L/2,y-Math.sin(a)*L/2); g.lineTo(x+Math.cos(a)*L/2,y+Math.sin(a)*L/2); g.stroke(); }
+    if(tempered){ g.fillStyle=CSS.slate; for(let i=0;i<60;i++){ g.beginPath(); g.arc(10+Math.random()*(w-20),10+Math.random()*(h-24),1.4,0,7); g.fill(); } }
+    g.fillStyle=CSS.mut; g.font='11px Calibri'; g.fillText(tempered?'needles + fine carbides → tough':(kind==='mixed'?'martensite + bainite':'sharp needles → hard, brittle'),8,h-4);
+  }
+}
+
+document.querySelectorAll('#coolOpts button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#coolOpts button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); cool=b.dataset.c; render();
+}));
+document.getElementById('tsl').addEventListener('input',e=>{ temper=+e.target.value;
+  document.getElementById('tlab').textContent=temper===0?'none':temper+' °C'; render(); });
+window.addEventListener('resize',render);
+render();
+</script>
+</body>
+</html>

@@ -11,7 +11,7 @@
 <style>
   :root{
     --ink:#1a2233; --navy:#1F3864; --teal:#1a7a62; --terra:#b1493c; --amber:#b0740c; --plum:#6d4c8f;
-    --rose:#a63a5e; --steel:#3f6f92;
+    --rose:#a63a5e; --steel:#3f6f92; --ember:#c0562a;
     --bg:#eef1f6; --panel:#ffffff; --line:#d7dee8; --mut:#5f6a7a;
     --serif:'Fraunces',Georgia,'Times New Roman',serif;
     --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
@@ -62,6 +62,7 @@
   .t-mech{color:var(--amber); background:rgba(176,116,12,.10)}
   .t-fail{color:var(--rose); background:rgba(166,58,94,.10)}
   .t-phase{color:var(--steel); background:rgba(63,111,146,.10)}
+  .t-heat{color:var(--ember); background:rgba(192,86,42,.10)}
   h2{
     font-family:var(--serif); font-weight:500; font-size:clamp(22px,3vw,30px);
     line-height:1.15; margin:0; color:var(--ink); letter-spacing:-.01em;
@@ -492,6 +493,66 @@
       </div>
       <div class="frame"><iframe src="iron-carbon-explorer.html" loading="lazy" title="Iron-carbon phase diagram with phases, steel class, and microstructure"></iframe></div>
       <div class="card-foot"><a class="open" href="iron-carbon-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+  </section>
+
+  <section id="heat" aria-labelledby="heat-h">
+    <div class="sec-head">
+      <span class="sec-tag t-heat">Heat treatment &amp; transformations</span>
+    </div>
+    <h2 id="heat-h">Same steel &mdash; the cooling and tempering schedule sets the part</h2>
+    <div class="sec-rule"></div>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">25</span>
+          <span class="chip">TTT &middot; isothermal</span>
+        </div>
+        <h3>Hold at a temperature, watch what forms</h3>
+        <p class="desc">Quench eutectoid steel to a hold temperature and wait: drag the temperature line and time cursor to see transformation begin where your path crosses the start curve and finish at the dashed one. Same steel every time &mdash; a high hold gives soft coarse pearlite, a lower one hard fine pearlite or bainite, and dropping below Ms shears austenite straight to martensite with no waiting.</p>
+      </div>
+      <div class="frame"><iframe src="ttt-explorer.html" loading="lazy" title="TTT diagram for eutectoid steel: isothermal transformation products"></iframe></div>
+      <div class="card-foot"><a class="open" href="ttt-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">26</span>
+          <span class="chip">CCT &middot; cooling rate</span>
+        </div>
+        <h3>How fast you cool decides what you get</h3>
+        <p class="desc">Real parts cool continuously, not in a held step. Drag the cooling curve faster or slower &mdash; or pick furnace, air, oil, or water &mdash; and read the microstructure that results. Beat the nose of the curve (cool faster than the critical rate) and you dodge pearlite entirely for fully martensite; cool slower and diffusion has time to build pearlite before you reach Ms.</p>
+      </div>
+      <div class="frame"><iframe src="cct-explorer.html" loading="lazy" title="CCT diagram: cooling rate versus resulting microstructure"></iframe></div>
+      <div class="card-foot"><a class="open" href="cct-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">27</span>
+          <span class="chip">quench &middot; temper</span>
+        </div>
+        <h3>Build a process, get a part</h3>
+        <p class="desc">Start from red-hot austenite, choose how to cool it, then how to temper it &mdash; and watch the same steel become a soft blank, a spring, or a glass-hard file. It's the payoff of quench-and-temper: tempering buys back most of the toughness lost to a hard martensitic quench while giving up only a little hardness, the strong-and-tough sweet spot.</p>
+      </div>
+      <div class="frame"><iframe src="heat-treatment-simulator.html" loading="lazy" title="Heat-treatment process simulator: cooling and tempering to part properties"></iframe></div>
+      <div class="card-foot"><a class="open" href="heat-treatment-simulator.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">28</span>
+          <span class="chip">aging &middot; peak &middot; over-age</span>
+        </div>
+        <h3>Grow precipitates to peak strength</h3>
+        <p class="desc">Solution-treat and quench an aluminium alloy, then set an aging temperature and drag the time cursor: fine coherent precipitates grow and yield strength climbs to a peak, because dislocations must bow around the closely-spaced particles. Keep aging and the particles coarsen and spread (Ostwald ripening), the gaps widen, and strength falls &mdash; over-aging is too much of a good thing.</p>
+      </div>
+      <div class="frame"><iframe src="age-hardening-explorer.html" loading="lazy" title="Age hardening: precipitate growth, peak strength, and over-aging"></iframe></div>
+      <div class="card-foot"><a class="open" href="age-hardening-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
     </article>
   </section>
 
