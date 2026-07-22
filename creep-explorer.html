@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Creep Explorer</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #main{display:flex;flex-wrap:wrap;}
+  #left{flex:1 1 300px;min-width:290px;padding:16px 20px;border-right:1px solid var(--line);background:#fff;}
+  #right{flex:1 1 380px;min-width:320px;padding:14px 20px;}
+  h2{font-family:Cambria,serif;font-size:14px;color:var(--navy);margin:0 0 12px;}
+  .ctl{margin-bottom:16px;}
+  .ctl .top{display:flex;justify-content:space-between;font-size:13px;}
+  .ctl .nm{font-weight:700;color:var(--navy);}
+  .ctl .val{font-family:Cambria,serif;color:var(--terra);font-weight:700;}
+  input[type=range]{width:100%;margin-top:6px;}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .rd{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px dotted var(--line);}
+  .rd b{font-family:Cambria,serif;color:var(--navy);font-size:15px;}
+  .msg{font-size:12px;color:var(--mut);line-height:1.5;margin-top:10px;}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:4px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Creep: slow stretch under heat and load</h1>
+  <p>Higher temperature or stress → faster creep, sooner rupture · ENGR 170</p>
+</header>
+<div id="cap">At high temperature a part under constant load keeps deforming — slowly, but forever, until it ruptures. Raise the temperature or the stress and the <b>steady-state creep rate</b> climbs (it's diffusion-assisted, so temperature dominates — Arrhenius, like Ch 6). Watch the curve steepen and the rupture time collapse.</div>
+<div id="main">
+  <div id="left">
+    <h2>Service conditions</h2>
+    <div class="ctl"><div class="top"><span class="nm">Temperature</span><span class="val" id="vT">0.5 T_m</span></div>
+      <input type="range" id="T" min="30" max="90" value="50"></div>
+    <div class="ctl"><div class="top"><span class="nm">Applied stress</span><span class="val" id="vS">medium</span></div>
+      <input type="range" id="S" min="20" max="100" value="50"></div>
+    <div class="rd"><span>steady-state creep rate</span><b id="rRate">—</b></div>
+    <div class="rd"><span>time to rupture</span><b id="rRup">—</b></div>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div id="right">
+    <canvas id="cv" width="480" height="360"></canvas>
+  </div>
+</div>
+<div class="disc">Qualitative teaching model. Steady-state rate rises with stress (power law) and steeply with temperature (Arrhenius), so rupture time falls sharply as either increases. Curve shows the three creep stages; values are relative, not calibrated to a specific alloy.</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,H=cv.height;
+cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+let T=50,Sig=50;
+function params(){
+  const t=(T-30)/60, s=(Sig-20)/80;                   // 0..1
+  // steady-state rate: Arrhenius-ish in T, power-law in stress
+  const rate = 0.02*Math.exp(3.2*t)*Math.pow(0.5+s,2.2);
+  const trup = 9.5/(1+rate*11);                        // rupture time (relative)
+  return {rate,trup,t,s};
+}
+function curve(tt, rate, trup){
+  // primary (saturating) + secondary (linear rate) + tertiary (blow up near trup)
+  const prim=0.10+0.30*(1-Math.exp(-tt/(0.15*trup)));
+  const sec=rate*tt;
+  const tert=0.02*Math.exp((tt-trup)*3.0);
+  return prim+sec+tert;
+}
+function draw(){
+  const {rate,trup,t,s}=params();
+  ctx.clearRect(0,0,W,H);
+  const PAD={l:46,r:16,t:18,b:38}, TMAX=10, EMAX=2.4;
+  const X=tt=>PAD.l+(W-PAD.l-PAD.r)*tt/TMAX, Y=e=>H-PAD.b-(H-PAD.t-PAD.b)*e/EMAX;
+  ctx.strokeStyle="#6B7480";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,H-PAD.b);ctx.lineTo(W-PAD.r,H-PAD.b);ctx.stroke();
+  ctx.fillStyle="#6B7480";ctx.font="12px Calibri";ctx.textAlign="center";
+  ctx.fillText("time in service  →",(PAD.l+W-PAD.r)/2,H-8);
+  ctx.save();ctx.translate(15,(PAD.t+H-PAD.b)/2);ctx.rotate(-Math.PI/2);ctx.fillText("creep strain",0,0);ctx.restore();
+  // curve up to rupture
+  ctx.beginPath();let broke=false,bx=0,by=0;
+  for(let i=0;i<=300;i++){const tt=TMAX*i/300; const e=curve(tt,rate,trup);
+    if(e>=EMAX){broke=true;bx=X(tt);by=Y(EMAX);break;}
+    const x=X(tt),y=Y(e); i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+  ctx.strokeStyle="#1F3864";ctx.lineWidth=3;ctx.stroke();
+  if(broke){ctx.strokeStyle="#B85042";ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(bx-6,by-6);ctx.lineTo(bx+6,by+6);ctx.moveTo(bx+6,by-6);ctx.lineTo(bx-6,by+6);ctx.stroke();
+    ctx.fillStyle="#B85042";ctx.font="bold 11px Calibri";ctx.textAlign="center";ctx.fillText("rupture",bx,by-10);}
+  // steady-state slope marker (mid)
+  const tmid=Math.min(trup*0.5,5);
+  const e1=curve(tmid,rate,trup);
+  ctx.strokeStyle="#E8890C";ctx.setLineDash([5,3]);ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(X(tmid-1.2),Y(e1-rate*1.2));ctx.lineTo(X(tmid+1.6),Y(e1+rate*1.6));ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle="#E8890C";ctx.font="bold 10.5px Calibri";ctx.textAlign="left";ctx.fillText("steady-state rate",X(tmid+0.2),Y(e1)+18);
+  // readouts
+  $('rRate').textContent=rate<0.05?"very low":rate<0.12?"low":rate<0.3?"moderate":rate<0.6?"high":"very high";
+  $('rRup').textContent=trup>8?"very long":trup>5?"long":trup>3?"moderate":trup>1.6?"short":"very short";
+  $('vT').textContent=(0.3+0.6*t).toFixed(2)+" T_m";
+  $('vS').textContent=s<0.33?"low":s<0.66?"medium":"high";
+  let m;
+  if(t>0.7) m="Temperature dominates — creep is diffusion-assisted, so a modest extra "+String.fromCharCode(176)+" heat multiplies the rate (Arrhenius, Ch 6).";
+  else if(s>0.7) m="High stress speeds steady-state creep and shortens life, but temperature is usually the stronger lever.";
+  else m="Cool and lightly loaded — creep is negligible. This only matters when parts run hot (jet blades, boiler tubes).";
+  $('msg').textContent=m;
+}
+$('T').oninput=e=>{T=+e.target.value;draw();};
+$('S').oninput=e=>{Sig=+e.target.value;draw();};
+draw();
+</script>
+</body>
+</html>

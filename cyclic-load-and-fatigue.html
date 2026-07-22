@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Cyclic Load &amp; Fatigue</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #main{display:flex;flex-wrap:wrap;}
+  #left{flex:1 1 300px;min-width:290px;padding:16px 20px;border-right:1px solid var(--line);background:#fff;}
+  #right{flex:1 1 380px;min-width:320px;padding:14px 20px;}
+  h2{font-family:Cambria,serif;font-size:14px;color:var(--navy);margin:0 0 12px;}
+  .ctl{margin-bottom:16px;}
+  .ctl .top{display:flex;justify-content:space-between;font-size:13px;}
+  .ctl .nm{font-weight:700;color:var(--navy);}
+  .ctl .val{font-family:Cambria,serif;color:var(--terra);font-weight:700;}
+  input[type=range]{width:100%;margin-top:6px;}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:6px;}
+  .rd{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px dotted var(--line);}
+  .rd b{font-family:Cambria,serif;color:var(--navy);}
+  .badge{margin-top:12px;padding:10px 12px;border-radius:10px;font-weight:700;text-align:center;font-size:13.5px;}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:4px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Cyclic load &amp; fatigue life</h1>
+  <p>σ_m, σ_a, Δσ, R from σ_max and σ_min — and what they do to life · ENGR 170</p>
+</header>
+<div id="cap">Any repeating load is described by just <b>two numbers</b> (σ_max and σ_min); everything else follows. Drag them and watch the wave, the four parameters, and the estimated fatigue life. The lesson: <b>amplitude drives fatigue</b> — lowering σ_a is the surest way to extend life, and for steel there's a threshold below which life is effectively infinite.</div>
+<div id="main">
+  <div id="left">
+    <h2>Set the load</h2>
+    <div class="ctl"><div class="top"><span class="nm">σ_max</span><span class="val" id="vMx">+300 MPa</span></div>
+      <input type="range" id="Mx" min="-100" max="500" value="300" step="10"></div>
+    <div class="ctl"><div class="top"><span class="nm">σ_min</span><span class="val" id="vMn">−100 MPa</span></div>
+      <input type="range" id="Mn" min="-300" max="400" value="-100" step="10"></div>
+    <div class="grid">
+      <div class="rd"><span>mean σ_m</span><b id="rMm">—</b></div>
+      <div class="rd"><span>amplitude σ_a</span><b id="rMa">—</b></div>
+      <div class="rd"><span>range Δσ</span><b id="rDs">—</b></div>
+      <div class="rd"><span>ratio R</span><b id="rR">—</b></div>
+    </div>
+    <div class="badge" id="badge">—</div>
+    <div class="rd" style="margin-top:8px"><span>estimated life (steel)</span><b id="rLife">—</b></div>
+  </div>
+  <div id="right">
+    <canvas id="cv" width="480" height="360"></canvas>
+  </div>
+</div>
+<div class="disc">σ_m=(σ_max+σ_min)/2, σ_a=(σ_max−σ_min)/2, Δσ=σ_max−σ_min, R=σ_min/σ_max. Life estimate is a teaching model for a representative steel with endurance limit ≈ 230 MPa (∞ life below it); it is not a design calculation and ignores mean-stress corrections.</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,H=cv.height;
+cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+let Mx=300,Mn=-100;
+function draw(){
+  if(Mn>Mx-20){Mn=Mx-20;$('Mn').value=Mn;}
+  const sm=(Mx+Mn)/2, sa=(Mx-Mn)/2, ds=Mx-Mn, R=Mx!==0?Mn/Mx:0;
+  ctx.clearRect(0,0,W,H);
+  const PAD={l:44,r:70,t:20,b:36};
+  const SMAX=560,SMIN=-360;
+  const Y=s=>PAD.t+(H-PAD.t-PAD.b)*(SMAX-s)/(SMAX-SMIN);
+  // axes
+  ctx.strokeStyle="#6B7480";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,H-PAD.b);ctx.lineTo(W-PAD.r,H-PAD.b);ctx.stroke();
+  ctx.strokeStyle="#EDF1F6";for(let s=-300;s<=500;s+=100){ctx.beginPath();ctx.moveTo(PAD.l,Y(s));ctx.lineTo(W-PAD.r,Y(s));ctx.stroke();}
+  ctx.fillStyle="#6B7480";ctx.font="11px Calibri";ctx.textAlign="right";
+  for(let s=-300;s<=500;s+=100){ctx.fillStyle="#6B7480";ctx.fillText(s,PAD.l-5,Y(s)+4);}
+  // zero line
+  ctx.strokeStyle="#9AA5B1";ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(PAD.l,Y(0));ctx.lineTo(W-PAD.r,Y(0));ctx.stroke();ctx.setLineDash([]);
+  // guide lines
+  function guide(s,col,lab){ctx.strokeStyle=col;ctx.setLineDash([5,3]);ctx.beginPath();ctx.moveTo(PAD.l,Y(s));ctx.lineTo(W-PAD.r,Y(s));ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=col;ctx.font="bold 10.5px Calibri";ctx.textAlign="left";ctx.fillText(lab,W-PAD.r+3,Y(s)+4);}
+  guide(Mx,"#B85042","σ_max"); guide(Mn,"#2E5496","σ_min"); guide(sm,"#1F7A63","σ_m");
+  // wave
+  ctx.beginPath();
+  for(let i=0;i<=300;i++){const t=i/300; const x=PAD.l+(W-PAD.l-PAD.r)*t;
+    const s=sm+sa*Math.sin(2*Math.PI*t*2.5-Math.PI/2); const y=Y(s);
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+  ctx.strokeStyle="#1F3864";ctx.lineWidth=3;ctx.stroke();
+  // amplitude arrow
+  const xa=PAD.l+(W-PAD.l-PAD.r)*0.28;
+  ctx.strokeStyle="#E8890C";ctx.fillStyle="#E8890C";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(xa,Y(sm));ctx.lineTo(xa,Y(Mx));ctx.stroke();
+  ctx.beginPath();ctx.moveTo(xa,Y(Mx));ctx.lineTo(xa-4,Y(Mx)+7);ctx.lineTo(xa+4,Y(Mx)+7);ctx.closePath();ctx.fill();
+  ctx.font="bold 11px Calibri";ctx.textAlign="left";ctx.fillText("σ_a",xa+5,(Y(sm)+Y(Mx))/2);
+  // readouts
+  $('rMm').textContent=sm.toFixed(0)+" MPa";$('rMa').textContent=sa.toFixed(0)+" MPa";
+  $('rDs').textContent=ds.toFixed(0)+" MPa";$('rR').textContent=R.toFixed(2);
+  $('vMx').textContent=(Mx>=0?"+":"")+Mx+" MPa";$('vMn').textContent=(Mn>=0?"+":"")+Mn+" MPa";
+  // life estimate
+  const EL=230;
+  const b=$('badge'), life=$('rLife');
+  if(sa<=EL){b.textContent="σ_a ≤ endurance limit → ∞ life";b.style.background="#E7F1EC";b.style.color="#1F7A63";life.textContent="essentially infinite";}
+  else{
+    // simple Basquin-like: N = (sigma_f/sa)^k
+    const sf=900,k=9; const N=Math.pow(sf/sa,k);
+    b.textContent="σ_a > endurance limit → finite life";b.style.background="#FBECE9";b.style.color="#B85042";
+    life.textContent="≈ "+ (N>1e6? (N/1e6).toFixed(1)+"M":Math.round(N/1000)+"k") +" cycles";
+  }
+}
+$('Mx').oninput=e=>{Mx=+e.target.value;draw();};
+$('Mn').oninput=e=>{Mn=+e.target.value;draw();};
+draw();
+</script>
+</body>
+</html>
