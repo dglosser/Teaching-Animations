@@ -66,7 +66,8 @@
     </div>
   </div>
   <p class="hint"><b class="term">Critical cooling rate</b> = the slowest cooling that still misses the nose and gives fully martensite.
-     Cool faster than that and you dodge pearlite entirely; cool slower and diffusion has time to build pearlite before you reach M<sub>s</sub>.</p>
+     Cool faster than that and you dodge pearlite entirely; cool slower and diffusion has time to build pearlite before you reach M<sub>s</sub> (the martensite-start temperature).
+     <span style="color:var(--mut)">(Hardness values are in HRC — the Rockwell C hardness scale.)</span></p>
 </div>
 
 <script>
@@ -134,7 +135,7 @@ function draw(){
   ctx.beginPath(); ctx.moveTo(px(X0),py(Teu)); ctx.lineTo(px(X1),py(Teu)); ctx.stroke(); ctx.setLineDash([]);
   ctx.fillStyle=CSS.mut; ctx.textAlign='left'; ctx.fillText('727°C eutectoid',px(X0)+6,py(Teu)-6);
   // Ms/Mf
-  for(const [Tl,lab] of [[Ms,'Mₛ ('+Ms+'°C)'],[Mf,'M_f ('+Mf+'°C)']]){
+  for(const [Tl,lab] of [[Ms,'Mₛ martensite start ('+Ms+'°C)'],[Mf,'M_f martensite finish ('+Mf+'°C)']]){
     ctx.strokeStyle=CSS.purp; ctx.lineWidth=1.6; ctx.setLineDash([6,4]);
     ctx.beginPath(); ctx.moveTo(px(X0),py(Tl)); ctx.lineTo(px(X1),py(Tl)); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle=CSS.purp; ctx.fillText(lab,px(X0)+6,py(Tl)-5);

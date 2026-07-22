@@ -76,7 +76,8 @@
   </div>
   <p class="hint"><b class="term">How to read it:</b> you quench instantly to the hold temperature (vertical drop), then hold (move right in time).
      Transformation begins where the path crosses the <b>solid</b> curve and is complete at the <b>dashed</b> curve.
-     Cross below <b style="color:var(--purp)">M<sub>s</sub></b> and the austenite shears straight to <b>martensite</b> — no waiting required.</p>
+     Cross below <b style="color:var(--purp)">M<sub>s</sub></b> and the austenite shears straight to <b>martensite</b> — no waiting required.
+     <span style="color:var(--mut)">(Hardness values are in HRC — the Rockwell C hardness scale.)</span></p>
 </div>
 
 <script>
@@ -115,7 +116,7 @@ function product(T){
   // returns {name,color,hard,char,expl}
   if(T<=Ms){
     return {name:'Martensite',color:CSS.purp,hard:'~64 HRC',char:'very hard, brittle',
-      expl:'Below Mₛ the austenite shears to a strained BCT lattice with no diffusion. Hardness is set the instant you cross the line.'};
+      expl:'Below Mₛ (the martensite-start temperature) the austenite shears to a strained body-centered-tetragonal (BCT) lattice with no diffusion. Hardness is set the instant you cross the line.'};
   }
   if(T>=650) return {name:'Coarse pearlite',color:CSS.teal,hard:'~15 HRC',char:'soft, ductile',
       expl:'Hot and slow: carbon diffuses easily, so the ferrite/cementite layers grow thick and widely spaced — soft and tough.'};
