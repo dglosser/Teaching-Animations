@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Resolved Shear Stress</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #main{display:flex;flex-wrap:wrap;}
+  #left{flex:1 1 300px;min-width:300px;padding:16px 20px;border-right:1px solid var(--line);background:#fff;}
+  #right{flex:1 1 380px;min-width:320px;padding:14px 20px;}
+  h2{font-family:Cambria,serif;font-size:14px;color:var(--navy);margin:0 0 12px;}
+  .ctl{margin-bottom:16px;}
+  .ctl .top{display:flex;justify-content:space-between;font-size:13px;}
+  .ctl .nm{font-weight:700;color:var(--navy);}
+  .ctl .val{font-family:Cambria,serif;color:var(--terra);font-weight:700;}
+  input[type=range]{width:100%;margin-top:6px;}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .rd{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px dotted var(--line);}
+  .rd b{font-family:Cambria,serif;color:var(--navy);font-size:15px;}
+  .badge{margin-top:12px;padding:10px 12px;border-radius:10px;font-weight:700;text-align:center;font-size:14px;}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:4px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>What actually drives slip: resolved shear stress</h1>
+  <p>τ_R = σ·cos φ·cos λ · slip starts when τ_R reaches τ_crss · ENGR 170</p>
+</header>
+<div id="cap">A tensile pull σ doesn't shear the slip plane head-on — only its <b>resolved</b> component does. Rotate the slip plane and watch τ_R rise and fall: it's <b>largest near 45°</b> and vanishes when the plane is square to or along the load. The grain whose plane is best-oriented yields first.</div>
+<div id="main">
+  <div id="left">
+    <h2>Controls</h2>
+    <div class="ctl"><div class="top"><span class="nm">Applied stress σ</span><span class="val" id="vS">150 MPa</span></div>
+      <input type="range" id="S" min="0" max="400" value="150" step="5"></div>
+    <div class="ctl"><div class="top"><span class="nm">Slip-plane angle to load</span><span class="val" id="vA">45°</span></div>
+      <input type="range" id="A" min="5" max="85" value="45" step="1"></div>
+    <div class="ctl"><div class="top"><span class="nm">τ_crss (material threshold)</span><span class="val" id="vC">60 MPa</span></div>
+      <input type="range" id="C" min="20" max="150" value="60" step="5"></div>
+    <div class="rd"><span>Schmid factor  m = cos φ cos λ</span><b id="rM">—</b></div>
+    <div class="rd"><span>resolved shear  τ_R = σ·m</span><b id="rT">—</b></div>
+    <div class="badge" id="badge">—</div>
+  </div>
+  <div id="right">
+    <canvas id="cv" width="460" height="420"></canvas>
+  </div>
+</div>
+<div class="disc">Single-slip geometry with the slip direction taken in the load–normal plane, so λ = 90°−φ and m = cosφ·cos(90−φ) = sinφ·cosφ (max 0.5 at 45°). A real crystal has several slip systems; the one with the largest m activates first.</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,H=cv.height;
+cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+let S=150,A=45,Ccrss=60;
+function draw(){
+  const phi=A*Math.PI/180;
+  const m=Math.sin(phi)*Math.cos(phi);   // = cosφcosλ with λ=90-φ
+  const tR=S*m;
+  ctx.clearRect(0,0,W,H);
+  const cx=W*0.42, cy=H*0.5, halfH=150, rad=52;
+  // bar/cylinder
+  ctx.fillStyle="#EDF1F7";ctx.strokeStyle="#2E5496";ctx.lineWidth=2;
+  ctx.beginPath();ctx.rect(cx-rad,cy-halfH,rad*2,halfH*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle="#DCE4EF";
+  ctx.beginPath();ctx.ellipse(cx,cy-halfH,rad,13,0,0,7);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.ellipse(cx,cy+halfH,rad,13,0,0,7);ctx.fill();ctx.stroke();
+  // load arrows
+  ctx.strokeStyle="#1F3864";ctx.fillStyle="#1F3864";ctx.lineWidth=3;
+  arrow(cx,cy-halfH-16,cx,cy-halfH-60);
+  arrow(cx,cy+halfH+16,cx,cy+halfH+60);
+  ctx.font="bold 16px Cambria";ctx.textAlign="center";ctx.fillText("σ",cx+16,cy-halfH-40);ctx.fillText("σ",cx+16,cy+halfH+52);
+  // slip plane: a line across the bar at angle phi from horizontal
+  const dx=Math.cos(phi), dy=Math.sin(phi);
+  const L=rad/Math.max(0.2,Math.cos(phi))*1.0;
+  const x1=cx-rad, x2=cx+rad;
+  const y1=cy - (x1-cx)*Math.tan(phi)*0, y2=cy;
+  // draw as an ellipse band representing the plane cut
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(-phi);
+  ctx.fillStyle="rgba(232,137,12,0.28)";ctx.strokeStyle="#E8890C";ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.ellipse(0,0,rad+2,20,0,0,7);ctx.fill();ctx.stroke();
+  ctx.restore();
+  // plane normal (perpendicular to plane) = angle phi from load axis
+  const nx=Math.sin(phi), ny=-Math.cos(phi);
+  ctx.strokeStyle="#B85042";ctx.fillStyle="#B85042";ctx.lineWidth=2.4;
+  arrow(cx,cy,cx+nx*90,cy+ny*90);
+  ctx.font="bold 12px Calibri";ctx.textAlign="left";ctx.fillText("plane normal",cx+nx*92+2,cy+ny*92);
+  // load axis dotted
+  ctx.strokeStyle="#6B7480";ctx.setLineDash([4,3]);ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx,cy-90);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle="#6B7480";ctx.fillText("load axis",cx+4,cy-78);
+  // phi angle label
+  ctx.fillStyle="#B85042";ctx.font="bold 14px Cambria";ctx.fillText("φ",cx+12,cy-24);
+  // resolved-shear arrows on the plane (shear couple)
+  const sh=Math.min(1,tR/200);
+  ctx.strokeStyle="#1F7A63";ctx.fillStyle="#1F7A63";ctx.lineWidth=3;
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(-phi);
+  arrow(-rad*0.7,-6,rad*0.7*(0.4+sh),-6);
+  arrow(rad*0.7,6,-rad*0.7*(0.4+sh),6);
+  ctx.restore();
+  ctx.font="bold 12px Calibri";ctx.fillStyle="#1F7A63";ctx.textAlign="left";
+  ctx.fillText("τ_R",cx+rad+8,cy+2);
+  // readouts
+  $('rM').textContent=m.toFixed(3);
+  $('rT').textContent=tR.toFixed(0)+" MPa";
+  const yields=tR>=Ccrss;
+  const b=$('badge');
+  if(yields){b.textContent="τ_R ≥ τ_crss  →  THIS GRAIN SLIPS";b.style.background="#E7F1EC";b.style.color="#1F7A63";}
+  else{b.textContent="τ_R < τ_crss  →  no slip yet";b.style.background="#FBECE9";b.style.color="#B85042";}
+}
+function arrow(x0,y0,x1,y1){
+  ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
+  const a=Math.atan2(y1-y0,x1-x0),h=8;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x1-h*Math.cos(a-0.4),y1-h*Math.sin(a-0.4));
+  ctx.lineTo(x1-h*Math.cos(a+0.4),y1-h*Math.sin(a+0.4));ctx.closePath();ctx.fill();
+}
+$('S').oninput=e=>{S=+e.target.value;$('vS').textContent=S+" MPa";draw();};
+$('A').oninput=e=>{A=+e.target.value;$('vA').textContent=A+"°";draw();};
+$('C').oninput=e=>{Ccrss=+e.target.value;$('vC').textContent=Ccrss+" MPa";draw();};
+draw();
+</script>
+</body>
+</html>

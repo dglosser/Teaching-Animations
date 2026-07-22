@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Annealing</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #main{display:flex;flex-wrap:wrap;}
+  #left{flex:1 1 380px;min-width:330px;padding:14px 20px;}
+  #right{flex:1 1 260px;min-width:240px;padding:16px 20px;background:#fff;border-left:1px solid var(--line);}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .slab{padding:14px 20px;background:#fff;border-bottom:1px solid var(--line);}
+  input[type=range]{width:100%;}
+  .tlab{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-top:4px;}
+  .stage{font-family:Cambria,serif;font-size:18px;font-weight:700;margin:0 0 4px;}
+  .prop{margin-bottom:13px;}
+  .prop .hd{display:flex;justify-content:space-between;font-size:12.5px;}
+  .track{height:18px;background:#E2E8F1;border-radius:9px;overflow:hidden;margin-top:3px;}
+  .fill{height:100%;width:0;border-radius:9px;transition:width .2s ease;}
+  .desc{font-size:12.5px;color:var(--ink);line-height:1.5;margin-top:8px;}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:4px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Annealing: undoing cold work</h1>
+  <p>Heat a cold-worked metal and it resets in three stages · ENGR 170</p>
+</header>
+<div id="cap">Cold work leaves a metal hard, brittle, and full of tangled dislocations. Raise the annealing temperature and three processes run in sequence — <b>recovery → recrystallization → grain growth</b> — trading strength back for ductility. Drag the temperature and watch the microstructure and properties change.</div>
+<div class="slab">
+  <input type="range" id="T" min="0" max="100" value="5">
+  <div class="tlab"><span>cold-worked (room T)</span><span>recovery</span><span>recrystallization</span><span>grain growth (hot / long)</span></div>
+</div>
+<div id="main">
+  <div id="left">
+    <canvas id="cv" width="480" height="330"></canvas>
+  </div>
+  <div id="right">
+    <p class="stage" id="stage">Cold-worked</p>
+    <div class="prop"><div class="hd"><span style="color:var(--terra);font-weight:700">strength / hardness</span><span id="wS"></span></div><div class="track"><div class="fill" id="fS" style="background:var(--terra)"></div></div></div>
+    <div class="prop"><div class="hd"><span style="color:var(--teal);font-weight:700">ductility</span><span id="wD"></span></div><div class="track"><div class="fill" id="fD" style="background:var(--teal)"></div></div></div>
+    <div class="prop"><div class="hd"><span style="color:var(--purp);font-weight:700">dislocation density</span><span id="wR"></span></div><div class="track"><div class="fill" id="fR" style="background:var(--purp)"></div></div></div>
+    <div class="desc" id="desc"></div>
+  </div>
+</div>
+<div class="disc">Schematic microstructure and qualitative property trends. Real temperatures depend on the metal and prior cold work; recrystallization typically begins near 0.3–0.5 of the absolute melting temperature.</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,H=cv.height;
+cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+let T=5;
+const rng=(()=>{let s=12345;return()=>{s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff;};})();
+const seeds=[]; for(let i=0;i<40;i++)seeds.push([rng(),rng(),rng()]);
+function stageOf(t){ if(t<28)return 0; if(t<46)return 1; if(t<74)return 2; return 3; }
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const pad=14; ctx.fillStyle="#F4F7FB";ctx.fillRect(pad,pad,W-2*pad,H-2*pad);
+  ctx.strokeStyle="#C7CFDA";ctx.strokeRect(pad,pad,W-2*pad,H-2*pad);
+  const st=stageOf(T);
+  const x0=pad+4,y0=pad+4,ww=W-2*pad-8,hh=H-2*pad-8;
+  if(st<=1){
+    // elongated grains (vertical bands)
+    const nb=8;
+    for(let i=0;i<nb;i++){ctx.fillStyle= i%2?"#E4ECF6":"#EDF2F9";
+      ctx.fillRect(x0+i*ww/nb,y0,ww/nb-1,hh);
+      ctx.strokeStyle="#2E5496";ctx.lineWidth=1;ctx.strokeRect(x0+i*ww/nb,y0,ww/nb-1,hh);}
+    // dislocations: many at st0, fewer at st1
+    const n= st===0?70:26;
+    ctx.fillStyle="#6D4C7D";ctx.font="9px Calibri";ctx.textAlign="center";
+    for(let i=0;i<n;i++){const px=x0+rng()*ww,py=y0+rng()*hh;ctx.fillText("⊥",px,py);}
+  } else if(st===2){
+    // recrystallization: new equiaxed grains growing (size depends on progress within stage)
+    const prog=(T-46)/(74-46);
+    const R=10+prog*16;
+    ctx.fillStyle="#E7F1EC";
+    const cols=Math.max(4,Math.round(ww/(R*2.1))), rows=Math.max(3,Math.round(hh/(R*2.1)));
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+      const px=x0+ (c+0.5)*ww/cols, py=y0+(r+0.5)*hh/rows;
+      ctx.beginPath();ctx.arc(px,py,R*0.92,0,7);ctx.fillStyle="#E7F1EC";ctx.fill();
+      ctx.strokeStyle="#1F7A63";ctx.lineWidth=1.3;ctx.stroke();
+    }
+    // a few leftover dislocations early in stage
+    if(prog<0.4){ctx.fillStyle="#6D4C7D";ctx.font="9px Calibri";ctx.textAlign="center";
+      for(let i=0;i<10;i++)ctx.fillText("⊥",x0+rng()*ww,y0+rng()*hh);}
+  } else {
+    // grain growth: fewer, larger grains
+    const prog=(T-74)/26; const R=30+prog*30;
+    const cols=Math.max(2,Math.round(ww/(R*2.0))), rows=Math.max(2,Math.round(hh/(R*2.0)));
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+      const px=x0+(c+0.5)*ww/cols, py=y0+(r+0.5)*hh/rows;
+      ctx.beginPath();ctx.arc(px,py,R*0.95,0,7);ctx.fillStyle="#E7F1EC";ctx.fill();
+      ctx.strokeStyle="#1F7A63";ctx.lineWidth=1.5;ctx.stroke();
+    }
+  }
+  // property model
+  let strg,duc,disl;
+  if(T<28){strg=0.95;duc=0.15;disl=0.95;}
+  else if(T<46){const p=(T-28)/18;strg=0.95-0.08*p;duc=0.15+0.08*p;disl=0.95-0.55*p;}
+  else if(T<74){const p=(T-46)/28;strg=0.87-0.55*p;duc=0.23+0.6*p;disl=0.40-0.35*p;}
+  else {const p=(T-74)/26;strg=0.32-0.12*p;duc=0.83+0.05*p;disl=0.05;}
+  const WORD=v=>v<0.2?"very low":v<0.4?"low":v<0.6?"med":v<0.8?"high":"very high";
+  $('fS').style.width=(strg*100)+"%";$('wS').textContent=WORD(strg);
+  $('fD').style.width=(duc*100)+"%";$('wD').textContent=WORD(duc);
+  $('fR').style.width=(disl*100)+"%";$('wR').textContent=WORD(disl);
+  const names=["Cold-worked","Recovery","Recrystallization","Grain growth"];
+  const desc=["Elongated grains packed with tangled dislocations — hard, strong, low ductility.",
+    "Dislocations rearrange and internal stresses relax. Strength barely drops yet; ductility edges up.",
+    "Brand-new strain-free grains nucleate and consume the deformed ones — strength falls, ductility recovers.",
+    "Held hotter/longer, grains coarsen. Fewer boundaries → strength drops further (reverse Hall–Petch)."];
+  $('stage').textContent=names[st];$('desc').textContent=desc[st];
+}
+$('T').oninput=e=>{T=+e.target.value;draw();};
+draw();
+</script>
+</body>
+</html>

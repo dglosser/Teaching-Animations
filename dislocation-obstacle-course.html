@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Dislocation Obstacle Course</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:11px 20px;background:#fff;border-bottom:1px solid var(--line);}
+  button{font-family:inherit;font-size:12.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:6px 11px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);} button.on{color:#fff;}
+  button.gb.on{background:var(--steel);border-color:var(--steel);}
+  button.so.on{background:var(--teal);border-color:var(--teal);}
+  button.fo.on{background:var(--terra);border-color:var(--terra);}
+  label{font-size:12.5px;color:var(--mut);}
+  #wrap{padding:14px 20px;}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .row{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;align-items:center;}
+  .card{background:var(--bg);border-radius:10px;padding:9px 13px;font-size:13px;}
+  .card b{font-family:Cambria,serif;font-size:17px;color:var(--navy);}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:2px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Dislocation obstacle course</h1>
+  <p>Strength = the stress needed to push a dislocation past obstacles · ENGR 170</p>
+</header>
+<div id="cap">A dislocation glides easily through a perfect crystal — that's why pure metals are soft. Switch on obstacles and it <b>stalls</b>: now it takes more stress to keep it moving. That extra stress <b>is</b> the added strength. Turn the three obstacles on and off and watch the required stress climb.</div>
+<div id="bar">
+  <label>Obstacles:</label>
+  <button class="gb" id="bGB">Grain boundary</button>
+  <button class="so" id="bSO">Solute atoms</button>
+  <button class="fo" id="bFO">Dislocation forest</button>
+  <label style="margin-left:10px">Applied stress τ</label>
+  <input type="range" id="stress" min="0" max="100" value="30" style="width:160px">
+  <button id="reset">↺ Reset</button>
+</div>
+<div id="wrap">
+  <canvas id="cv" width="900" height="300"></canvas>
+  <div class="row">
+    <div class="card">applied stress τ: <b id="oS">30</b></div>
+    <div class="card">stress needed to move: <b id="oN">10</b></div>
+    <div class="card" id="stateCard">status: <b id="oState">gliding</b></div>
+  </div>
+</div>
+<div class="disc">Schematic. Obstacle "resistance" values are illustrative (each obstacle adds to the stress needed for the line to keep gliding). Real strengthening adds contributions from grain boundaries (Hall–Petch), solute strain fields, and forest dislocations (strain hardening).</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,H=cv.height;
+cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+let GB=false,SO=false,FO=false,stress=30;
+let x=60;                // dislocation x position
+const y0=H*0.5;
+const NX=18, sp=W/(NX+1);
+const solutes=[{c:8,r:2},{c:11,r:3},{c:13,r:2}];  // grid columns near which solutes sit
+const forest=[{c:9,r:1},{c:12,r:4},{c:10,r:3},{c:14,r:2}];
+function baseResist(){return 8;}
+function resistanceAt(px){
+  let r=baseResist();
+  const col=px/sp;
+  if(GB){ if(col> NX-3) r+=70; }          // wall near right
+  if(SO){ for(const s of solutes){ if(Math.abs(col-s.c)<0.7) r+=34; } }
+  if(FO){ for(const f of forest){ if(Math.abs(col-f.c)<0.7) r+=28; } }
+  return r;
+}
+function needToMove(){ // max resistance the line will encounter ahead
+  let mx=baseResist();
+  for(let c=x/sp;c<NX+1;c+=0.1){ mx=Math.max(mx,resistanceAt(c*sp)); if(GB&&c>NX-3)break;}
+  return mx;
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // lattice
+  for(let j=1;j<=5;j++)for(let i=1;i<=NX;i++){
+    ctx.beginPath();ctx.arc(i*sp,j*H/6,8,0,7);ctx.fillStyle="#c9d4e6";ctx.fill();
+    ctx.strokeStyle="#2E5496";ctx.lineWidth=1;ctx.stroke();
+  }
+  // grain boundary wall
+  if(GB){const gx=(NX-2.5)*sp;ctx.strokeStyle="#2E5496";ctx.lineWidth=5;
+    ctx.beginPath();ctx.moveTo(gx,10);ctx.lineTo(gx,H-10);ctx.stroke();
+    // rotated grain to the right
+    ctx.fillStyle="#e7efe6";
+    for(let j=0;j<6;j++)for(let i=0;i<3;i++){const rx=gx+18+i*24+8*j, ry=24+j*46;
+      if(rx<W-6){ctx.beginPath();ctx.arc(rx,ry,7,0,7);ctx.fill();ctx.strokeStyle="#2E5496";ctx.lineWidth=1;ctx.stroke();}}
+    ctx.fillStyle="#2E5496";ctx.font="bold 12px Calibri";ctx.textAlign="center";ctx.fillText("grain boundary",gx,H-2);
+  }
+  // solutes
+  if(SO){for(const s of solutes){const px=s.c*sp,py=s.r*H/6;
+    ctx.beginPath();ctx.arc(px,py,12,0,7);ctx.fillStyle="#8fc9b6";ctx.fill();ctx.strokeStyle="#1F7A63";ctx.lineWidth=2;ctx.stroke();
+    ctx.setLineDash([3,2]);ctx.beginPath();ctx.arc(px,py,19,0,7);ctx.strokeStyle="#1F7A63";ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);}}
+  // forest
+  if(FO){for(const f of forest){const px=f.c*sp,py=f.r*H/6;
+    ctx.strokeStyle="#B85042";ctx.lineWidth=2.4;
+    ctx.beginPath();ctx.moveTo(px,py-11);ctx.lineTo(px,py+11);ctx.moveTo(px-9,py-11);ctx.lineTo(px+9,py-11);ctx.stroke();}}
+  // dislocation (⊥) gliding at y0
+  ctx.strokeStyle="#6D4C7D";ctx.lineWidth=3.4;
+  ctx.beginPath();ctx.moveTo(x,y0-16);ctx.lineTo(x,y0+16);ctx.moveTo(x-13,y0+16);ctx.lineTo(x+13,y0+16);ctx.stroke();
+  // shear arrow
+  ctx.strokeStyle="#1F7A63";ctx.fillStyle="#1F7A63";ctx.lineWidth=2.4;
+  const aw=18+stress*0.8;
+  ctx.beginPath();ctx.moveTo(30,26);ctx.lineTo(30+aw,26);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(30+aw,26);ctx.lineTo(30+aw-7,22);ctx.lineTo(30+aw-7,30);ctx.closePath();ctx.fill();
+  ctx.font="bold 13px Cambria";ctx.fillText("τ",34,18);
+  // readouts
+  const need=needToMove();
+  $('oS').textContent=stress.toFixed(0);
+  $('oN').textContent=need.toFixed(0);
+}
+let raf;
+function step(){
+  const localR=resistanceAt(x);
+  const moving = stress> localR+0.5;
+  if(moving){ x += Math.min(3, 0.6*(stress-localR)); }
+  if(x> W-20){ x=W-20; }
+  const stalled = !moving && x < W-30;
+  const st=$('oState');
+  if(x>=W-30){ st.textContent="glided through → slip step formed"; st.style.color="#1F7A63"; }
+  else if(stalled){ st.textContent="STALLED — needs more stress"; st.style.color="#B85042"; }
+  else { st.textContent="gliding"; st.style.color="#1F7A63"; }
+  draw();
+  raf=requestAnimationFrame(step);
+}
+function toggle(btn,which){ btn.classList.toggle('on'); if(which==='GB')GB=!GB; if(which==='SO')SO=!SO; if(which==='FO')FO=!FO; }
+$('bGB').onclick=()=>toggle($('bGB'),'GB');
+$('bSO').onclick=()=>toggle($('bSO'),'SO');
+$('bFO').onclick=()=>toggle($('bFO'),'FO');
+$('stress').oninput=e=>{stress=+e.target.value;};
+$('reset').onclick=()=>{x=60;};
+step();
+</script>
+</body>
+</html>

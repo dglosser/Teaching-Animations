@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#1a2233; --navy:#1F3864; --teal:#1a7a62; --terra:#b1493c; --amber:#b0740c;
+    --ink:#1a2233; --navy:#1F3864; --teal:#1a7a62; --terra:#b1493c; --amber:#b0740c; --plum:#6d4c8f;
     --bg:#eef1f6; --panel:#ffffff; --line:#d7dee8; --mut:#5f6a7a;
     --serif:'Fraunces',Georgia,'Times New Roman',serif;
     --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
@@ -56,6 +56,9 @@
   }
   .t-bond{color:var(--terra); background:rgba(177,73,60,.09)}
   .t-cryst{color:var(--navy); background:rgba(31,56,100,.09)}
+  .t-poly{color:var(--plum); background:rgba(109,76,143,.10)}
+  .t-diff{color:var(--teal); background:rgba(26,122,98,.10)}
+  .t-mech{color:var(--amber); background:rgba(176,116,12,.10)}
   h2{
     font-family:var(--serif); font-weight:500; font-size:clamp(22px,3vw,30px);
     line-height:1.15; margin:0; color:var(--ink); letter-spacing:-.01em;
@@ -166,58 +169,6 @@
       <div class="frame"><iframe src="property-table.html" loading="lazy" title="The property table derived from bonding physics"></iframe></div>
       <div class="card-foot"><a class="open" href="property-table.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
     </article>
-
-    <article class="card">
-      <div class="card-head">
-        <div class="card-top">
-          <span class="num">07</span>
-          <span class="chip">Mn &middot; Mw &middot; PDI</span>
-        </div>
-        <h3>Molecular weight is a distribution</h3>
-        <p class="desc">Build a polymer as a mixture of chain lengths and watch two averages pull apart: the number-average weights every chain equally, while the weight-average leans toward the long-chain tail, since longer chains carry more of the mass. Drag any chain, drop in one giant chain, and see why the polydispersity index &mdash; the ratio of the two &mdash; equals exactly 1 only when every chain is identical.</p>
-      </div>
-      <div class="frame"><iframe src="molecular-weight-distribution.html" loading="lazy" title="Molecular weight distribution: number-average vs weight-average"></iframe></div>
-      <div class="card-foot"><a class="open" href="molecular-weight-distribution.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
-    </article>
-
-    <article class="card">
-      <div class="card-head">
-        <div class="card-top">
-          <span class="num">08</span>
-          <span class="chip">MW &middot; Xc &middot; Xlink &middot; branch</span>
-        </div>
-        <h3>Four levers, one exception</h3>
-        <p class="desc">Toggle four structural levers &mdash; molecular weight, crystallinity, crosslinking, and branching &mdash; across preset polymer types (HDPE-like, LDPE-like, a thermoset) and watch stiffness, strength, and Tg/Tm respond. Three levers push every property the same direction; branching is the outlier, loosening chain packing to pull all three back down.</p>
-      </div>
-      <div class="frame"><iframe src="structure-properties-polymers.html" loading="lazy" title="Structure-property relationships for polymers: four levers, three properties"></iframe></div>
-      <div class="card-foot"><a class="open" href="structure-properties-polymers.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
-    </article>
-
-    <article class="card">
-      <div class="card-head">
-        <div class="card-top">
-          <span class="num">13</span>
-          <span class="chip">elastic &middot; yield &middot; fracture</span>
-        </div>
-        <h3>Every property is a point on the curve</h3>
-        <p class="desc">Drag a marker along the engineering stress&ndash;strain curve and watch the atomic panel show what's happening &mdash; bond stretch, dislocation glide, chain uncoiling, or rupture &mdash; while each property landmark (modulus, yield, tensile strength, fracture) lights up as you reach it. Switch between a ductile metal, brittle ceramic, and polymer to see how bonding sets the whole shape.</p>
-      </div>
-      <div class="frame"><iframe src="stress-strain-explorer.html" loading="lazy" title="Stress-strain curve explorer with atomic-scale events and property landmarks"></iframe></div>
-      <div class="card-foot"><a class="open" href="stress-strain-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
-    </article>
-
-    <article class="card">
-      <div class="card-head">
-        <div class="card-top">
-          <span class="num">14</span>
-          <span class="chip">2 roots &middot; 6 properties</span>
-        </div>
-        <h3>Six properties, two roots</h3>
-        <p class="desc">Mechanical properties aren't six independent facts &mdash; they fall out of two structural roots. Drag bond stiffness/strength and the ease of dislocation motion and watch the stress&ndash;strain curve reshape as stiffness, yield, tensile strength, ductility, toughness, and hardness all follow; toughness is read as the real area under the curve, so the strength&ndash;ductility trade-off is genuine.</p>
-      </div>
-      <div class="frame"><iframe src="structure-to-curve-to-properties.html" loading="lazy" title="Two structural roots reshaping the stress-strain curve and setting six mechanical properties"></iframe></div>
-      <div class="card-foot"><a class="open" href="structure-to-curve-to-properties.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
-    </article>
   </section>
 
   <section id="crystal" aria-labelledby="crystal-h">
@@ -265,6 +216,48 @@
       <div class="frame"><iframe src="bragg-law.html" loading="lazy" title="Derivation of Bragg's law"></iframe></div>
       <div class="card-foot"><a class="open" href="bragg-law.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
     </article>
+  </section>
+
+  <section id="polymers" aria-labelledby="polymers-h">
+    <div class="sec-head">
+      <span class="sec-tag t-poly">Polymers</span>
+    </div>
+    <h2 id="polymers-h">Long-chain molecules, and the properties that follow</h2>
+    <div class="sec-rule"></div>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">07</span>
+          <span class="chip">Mn &middot; Mw &middot; PDI</span>
+        </div>
+        <h3>Molecular weight is a distribution</h3>
+        <p class="desc">Build a polymer as a mixture of chain lengths and watch two averages pull apart: the number-average weights every chain equally, while the weight-average leans toward the long-chain tail, since longer chains carry more of the mass. Drag any chain, drop in one giant chain, and see why the polydispersity index &mdash; the ratio of the two &mdash; equals exactly 1 only when every chain is identical.</p>
+      </div>
+      <div class="frame"><iframe src="molecular-weight-distribution.html" loading="lazy" title="Molecular weight distribution: number-average vs weight-average"></iframe></div>
+      <div class="card-foot"><a class="open" href="molecular-weight-distribution.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">08</span>
+          <span class="chip">MW &middot; Xc &middot; Xlink &middot; branch</span>
+        </div>
+        <h3>Four levers, one exception</h3>
+        <p class="desc">Toggle four structural levers &mdash; molecular weight, crystallinity, crosslinking, and branching &mdash; across preset polymer types (HDPE-like, LDPE-like, a thermoset) and watch stiffness, strength, and Tg/Tm respond. Three levers push every property the same direction; branching is the outlier, loosening chain packing to pull all three back down.</p>
+      </div>
+      <div class="frame"><iframe src="structure-properties-polymers.html" loading="lazy" title="Structure-property relationships for polymers: four levers, three properties"></iframe></div>
+      <div class="card-foot"><a class="open" href="structure-properties-polymers.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+  </section>
+
+  <section id="diffusion" aria-labelledby="diffusion-h">
+    <div class="sec-head">
+      <span class="sec-tag t-diff">Diffusion</span>
+    </div>
+    <h2 id="diffusion-h">How atoms move through a solid &mdash; and how far they get</h2>
+    <div class="sec-rule"></div>
 
     <article class="card">
       <div class="card-head">
@@ -319,11 +312,97 @@
     </article>
   </section>
 
+  <section id="mechanical" aria-labelledby="mechanical-h">
+    <div class="sec-head">
+      <span class="sec-tag t-mech">Mechanical behavior &amp; strengthening</span>
+    </div>
+    <h2 id="mechanical-h">The stress&ndash;strain curve, and the dislocations behind every number</h2>
+    <div class="sec-rule"></div>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">13</span>
+          <span class="chip">elastic &middot; yield &middot; fracture</span>
+        </div>
+        <h3>Every property is a point on the curve</h3>
+        <p class="desc">Drag a marker along the engineering stress&ndash;strain curve and watch the atomic panel show what's happening &mdash; bond stretch, dislocation glide, chain uncoiling, or rupture &mdash; while each property landmark (modulus, yield, tensile strength, fracture) lights up as you reach it. Switch between a ductile metal, brittle ceramic, and polymer to see how bonding sets the whole shape.</p>
+      </div>
+      <div class="frame"><iframe src="stress-strain-explorer.html" loading="lazy" title="Stress-strain curve explorer with atomic-scale events and property landmarks"></iframe></div>
+      <div class="card-foot"><a class="open" href="stress-strain-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">14</span>
+          <span class="chip">2 roots &middot; 6 properties</span>
+        </div>
+        <h3>Six properties, two roots</h3>
+        <p class="desc">Mechanical properties aren't six independent facts &mdash; they fall out of two structural roots. Drag bond stiffness/strength and the ease of dislocation motion and watch the stress&ndash;strain curve reshape as stiffness, yield, tensile strength, ductility, toughness, and hardness all follow; toughness is read as the real area under the curve, so the strength&ndash;ductility trade-off is genuine.</p>
+      </div>
+      <div class="frame"><iframe src="structure-to-curve-to-properties.html" loading="lazy" title="Two structural roots reshaping the stress-strain curve and setting six mechanical properties"></iframe></div>
+      <div class="card-foot"><a class="open" href="structure-to-curve-to-properties.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">15</span>
+          <span class="chip">&tau;R = &sigma;&middot;cos&phi;&middot;cos&lambda;</span>
+        </div>
+        <h3>What actually drives slip</h3>
+        <p class="desc">A tensile pull doesn't shear a slip plane head-on &mdash; only its resolved component does. Rotate the slip plane and watch the resolved shear stress &tau;R = &sigma;&middot;cos&phi;&middot;cos&lambda; peak near 45&deg; and vanish when the plane sits square to or along the load; slip begins once it reaches the critical resolved shear stress, so the best-oriented grain yields first.</p>
+      </div>
+      <div class="frame"><iframe src="resolved-shear-stress.html" loading="lazy" title="Resolved shear stress and the Schmid factor governing slip"></iframe></div>
+      <div class="card-foot"><a class="open" href="resolved-shear-stress.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">16</span>
+          <span class="chip">dislocation glide</span>
+        </div>
+        <h3>Strength is resistance to glide</h3>
+        <p class="desc">A dislocation glides easily through a perfect crystal &mdash; which is why pure metals are soft. Switch on grain boundaries, solute atoms, and a dislocation forest one at a time and watch the stress needed to keep the line moving climb; that extra stress <em>is</em> the added strength.</p>
+      </div>
+      <div class="frame"><iframe src="dislocation-obstacle-course.html" loading="lazy" title="A dislocation stalling against grain boundaries, solutes, and forest dislocations"></iframe></div>
+      <div class="card-foot"><a class="open" href="dislocation-obstacle-course.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">17</span>
+          <span class="chip">Hall&ndash;Petch &middot; solute &middot; cold work</span>
+        </div>
+        <h3>Three ways to strengthen a metal</h3>
+        <p class="desc">Grain refinement, solid-solution alloying, and cold work each throw a different obstacle in a dislocation's path &mdash; Hall&ndash;Petch grain boundaries, solute strain fields, and tangled forest dislocations &mdash; so each adds to the yield strength. But watch ductility: two of the three spend it, and only grain refinement raises strength without wrecking ductility.</p>
+      </div>
+      <div class="frame"><iframe src="strengthening-explorer.html" loading="lazy" title="Three strengthening mechanisms and their cost to ductility"></iframe></div>
+      <div class="card-foot"><a class="open" href="strengthening-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">18</span>
+          <span class="chip">recovery &middot; recryst. &middot; growth</span>
+        </div>
+        <h3>Annealing: undoing cold work</h3>
+        <p class="desc">Cold work leaves a metal hard, brittle, and tangled with dislocations. Raise the annealing temperature and three processes run in sequence &mdash; recovery, recrystallization, then grain growth &mdash; trading strength back for ductility as the dislocation density falls. Drag the temperature and watch the microstructure and properties reset.</p>
+      </div>
+      <div class="frame"><iframe src="annealing.html" loading="lazy" title="Recovery, recrystallization, and grain growth on annealing a cold-worked metal"></iframe></div>
+      <div class="card-foot"><a class="open" href="annealing.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+  </section>
+
 </main>
 
 <footer>
   <div class="wrap foot-grid">
-    <p class="foot-note">Built as teaching tools for ENGR 170, Introduction to Materials Science &amp; Engineering. Each animation runs entirely in the browser &mdash; no install, no plugins.</p>
+    <p class="foot-note">Built as teaching tools for ENGR 170, Introduction to Materials Science &amp; Engineering. Each animation runs entirely in the browser &mdash; no install, no plugins. Animations produced with Claude Opus 4.8 (Anthropic).</p>
     <p class="foot-meta">Deborah Glosser &middot; WWU</p>
   </div>
 </footer>

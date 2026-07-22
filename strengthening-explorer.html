@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Strengthening Explorer</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #main{display:flex;flex-wrap:wrap;}
+  #left{flex:1 1 320px;min-width:300px;padding:16px 20px;border-right:1px solid var(--line);background:#fff;}
+  #mid{flex:1 1 340px;min-width:300px;padding:14px 20px;}
+  #right{flex:1 1 220px;min-width:210px;padding:16px 20px;background:#fff;border-left:1px solid var(--line);}
+  h2{font-family:Cambria,serif;font-size:14px;color:var(--navy);margin:0 0 12px;}
+  .ctl{margin-bottom:17px;}
+  .ctl .top{display:flex;justify-content:space-between;font-size:13px;}
+  .ctl .nm{font-weight:700;}
+  .ctl .sub{font-size:11px;color:var(--mut);margin:1px 0 3px;}
+  .ctl .val{font-family:Cambria,serif;font-weight:700;}
+  input[type=range]{width:100%;}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;}
+  .prop{margin-bottom:13px;}
+  .prop .hd{display:flex;justify-content:space-between;font-size:12.5px;}
+  .prop .nm{font-weight:700;}
+  .track{height:18px;background:#E2E8F1;border-radius:9px;overflow:hidden;margin-top:3px;}
+  .fill{height:100%;width:0;border-radius:9px;transition:width .18s ease;}
+  .preset{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+  button{font-family:inherit;font-size:11.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:5px 9px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  .msg{font-size:12px;color:var(--mut);line-height:1.5;margin-top:8px;}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:4px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Three ways to strengthen a metal</h1>
+  <p>Grain refinement · solid solution · cold work — all obstruct dislocations · ENGR 170</p>
+</header>
+<div id="cap">Each lever adds a different obstacle to dislocation motion, so each adds to the yield strength. But watch <b>ductility</b>: two of the three cost it — only <b>grain refinement</b> raises strength without wrecking ductility.</div>
+<div id="main">
+  <div id="left">
+    <h2>Strengthening levers</h2>
+    <div class="ctl"><div class="top"><span class="nm" style="color:var(--teal)">Grain size d</span><span class="val" id="vD" style="color:var(--teal)">0.030 mm</span></div>
+      <div class="sub">Hall–Petch: σ_y = σ₀ + k·d^(−1/2) — smaller grains, more boundaries</div>
+      <input type="range" id="D" min="0" max="100" value="45"></div>
+    <div class="ctl"><div class="top"><span class="nm" style="color:var(--terra)">Solute content</span><span class="val" id="vC" style="color:var(--terra)">8 at%</span></div>
+      <div class="sub">size-mismatch strain fields pin dislocations (e.g. Zn in Cu)</div>
+      <input type="range" id="C" min="0" max="100" value="27"></div>
+    <div class="ctl"><div class="top"><span class="nm" style="color:var(--amber)">Cold work %CW</span><span class="val" id="vW" style="color:var(--amber)">15%</span></div>
+      <div class="sub">dislocation density soars and tangles — strong but brittle</div>
+      <input type="range" id="W" min="0" max="100" value="21"></div>
+    <div class="preset">
+      <button data-p="pure">Soft pure metal</button>
+      <button data-p="brass">Brass (solute)</button>
+      <button data-p="cw">Cold-drawn wire</button>
+      <button data-p="fine">Fine-grained steel</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+  <div id="mid">
+    <canvas id="cv" width="460" height="360"></canvas>
+  </div>
+  <div id="right">
+    <h2>Result</h2>
+    <div class="prop"><div class="hd"><span class="nm" style="color:var(--navy)">yield strength σ_y</span><span id="wY"></span></div><div class="track"><div class="fill" id="fY" style="background:var(--navy)"></div></div></div>
+    <div class="prop"><div class="hd"><span class="nm" style="color:var(--teal)">ductility</span><span id="wDu"></span></div><div class="track"><div class="fill" id="fDu" style="background:var(--teal)"></div></div></div>
+    <div style="font-size:12px;color:var(--mut);margin-top:6px;border-top:1px dotted var(--line);padding-top:8px;">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--teal)">from grain size</span><b id="cG">—</b></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--terra)">from solute</span><b id="cS">—</b></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--amber)">from cold work</span><b id="cW">—</b></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:4px;padding-top:4px;"><span style="color:var(--navy);font-weight:700">σ_y total</span><b id="cT" style="color:var(--navy)">—</b></div>
+    </div>
+  </div>
+</div>
+<div class="disc">Teaching model with representative constants (σ₀=25 MPa; Hall–Petch k=12 MPa·mm^½; solute ∝ √c; cold work ∝ %CW^0.6). Yield-strength contributions add; ductility is a qualitative index. Not calibrated to a specific alloy.</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,H=cv.height;
+cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+let D=45,C=27,Wk=21;
+const S0=25, kHP=12;
+// grain size from slider: 0->0.20mm (coarse), 100->0.004mm (fine), log-ish
+function dmm(){return 0.004*Math.pow(0.20/0.004,1-D/100);}
+function calc(){
+  const d=dmm();
+  const gG=kHP*Math.pow(d,-0.5);
+  const cAt=C/100*30;
+  const gS=17*Math.sqrt(cAt);
+  const cw=Wk/100*70;
+  const gW=9.5*Math.pow(cw,0.6);
+  const sy=S0+gG+gS+gW;
+  // ductility index 0..1
+  let duc=0.95 - 0.85*(cw/70) - 0.35*(cAt/30) + 0.08*(D/100);
+  duc=Math.max(0.03,Math.min(1,duc));
+  return {d,gG,gS,gW,sy,duc,cAt,cw};
+}
+function draw(){
+  const r=calc();
+  // stress-strain curve
+  ctx.clearRect(0,0,W,H);
+  const PAD={l:44,r:14,t:14,b:38};
+  const SYMAX=600, EMAX=0.4;
+  ctx.strokeStyle="#6B7480";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,H-PAD.b);ctx.lineTo(W-PAD.r,H-PAD.b);ctx.stroke();
+  ctx.fillStyle="#6B7480";ctx.font="12px Calibri";ctx.textAlign="center";
+  ctx.fillText("strain  ε",(PAD.l+W-PAD.r)/2,H-8);
+  ctx.save();ctx.translate(14,(PAD.t+H-PAD.b)/2);ctx.rotate(-Math.PI/2);ctx.fillText("stress  σ (MPa)",0,0);ctx.restore();
+  const X=e=>PAD.l+(W-PAD.l-PAD.r)*e/EMAX, Y=s=>H-PAD.b-(H-PAD.t-PAD.b)*s/SYMAX;
+  const sy=r.sy, ef=0.02+0.36*r.duc, TS=sy*(1.15+0.25*r.duc);
+  // area fill
+  ctx.beginPath();ctx.moveTo(X(0),Y(0));
+  const pts=[];
+  for(let i=0;i<=120;i++){const e=ef*i/120; let s;
+    const ey=sy/ (sy/0.0025); // small elastic slope
+    if(e<0.004) s=(sy/0.004)*e; else s=sy+(TS-sy)*(1-Math.exp(-(e-0.004)/0.12));
+    pts.push([e,s]); ctx.lineTo(X(e),Y(s));}
+  ctx.lineTo(X(ef),Y(0));ctx.closePath();ctx.fillStyle="rgba(31,122,99,0.12)";ctx.fill();
+  ctx.beginPath();pts.forEach((p,i)=>{const q=[X(p[0]),Y(p[1])];i?ctx.lineTo(...q):ctx.moveTo(...q);});
+  ctx.strokeStyle="#1F3864";ctx.lineWidth=3;ctx.stroke();
+  const last=pts[pts.length-1];
+  ctx.strokeStyle="#B85042";ctx.lineWidth=3;const px=X(last[0]),py=Y(last[1]);
+  ctx.beginPath();ctx.moveTo(px-6,py-6);ctx.lineTo(px+6,py+6);ctx.moveTo(px+6,py-6);ctx.lineTo(px-6,py+6);ctx.stroke();
+  // yield marker
+  ctx.fillStyle="#E8890C";ctx.beginPath();ctx.arc(X(0.004),Y(sy),4.5,0,7);ctx.fill();
+  ctx.fillStyle="#E8890C";ctx.font="bold 11px Calibri";ctx.textAlign="left";ctx.fillText("σ_y="+sy.toFixed(0),X(0.004)+6,Y(sy)-5);
+  ctx.fillStyle="#6B7480";ctx.font="italic 11px Calibri";ctx.textAlign="right";ctx.fillText("shaded area ≈ toughness",W-PAD.r-2,PAD.t+12);
+  // readouts
+  const WORD=v=>v<0.2?"very low":v<0.4?"low":v<0.6?"med":v<0.8?"high":"very high";
+  $('fY').style.width=Math.min(100,r.sy/600*100).toFixed(0)+"%";$('wY').textContent=r.sy.toFixed(0)+" MPa";
+  $('fDu').style.width=(r.duc*100).toFixed(0)+"%";$('wDu').textContent=WORD(r.duc);
+  $('cG').textContent="+"+r.gG.toFixed(0);$('cS').textContent="+"+r.gS.toFixed(0);
+  $('cW').textContent="+"+r.gW.toFixed(0);$('cT').textContent=r.sy.toFixed(0)+" MPa";
+  $('vD').textContent=r.d.toFixed(3)+" mm";$('vC').textContent=r.cAt.toFixed(0)+" at%";$('vW').textContent=r.cw.toFixed(0)+"%";
+  let m;
+  if(r.cw>40) m="Heavy cold work dominates — high strength but ductility is nearly gone. Anneal to reset it.";
+  else if(r.gS>r.gG && r.gS>r.gW) m="Solute strengthening leads here — some ductility given up for strength.";
+  else if(r.gG>=r.gS && r.gG>=r.gW && D>55) m="Grain refinement leads — and it's the one lever that keeps ductility up.";
+  else m="A balanced mix. Notice grain refinement is the only lever whose bar doesn't pull ductility down.";
+  $('msg').innerHTML=m;
+}
+$('D').oninput=e=>{D=+e.target.value;draw();};
+$('C').oninput=e=>{C=+e.target.value;draw();};
+$('W').oninput=e=>{Wk=+e.target.value;draw();};
+const PRE={pure:[35,0,0],brass:[40,60,5],cw:[35,5,70],fine:[92,10,10]};
+document.querySelectorAll('button[data-p]').forEach(b=>b.onclick=()=>{
+  const[d,c,w]=PRE[b.dataset.p];D=d;C=c;Wk=w;$('D').value=d;$('C').value=c;$('W').value=w;draw();});
+draw();
+</script>
+</body>
+</html>
