@@ -11,6 +11,7 @@
 <style>
   :root{
     --ink:#1a2233; --navy:#1F3864; --teal:#1a7a62; --terra:#b1493c; --amber:#b0740c; --plum:#6d4c8f;
+    --rose:#a63a5e; --steel:#3f6f92;
     --bg:#eef1f6; --panel:#ffffff; --line:#d7dee8; --mut:#5f6a7a;
     --serif:'Fraunces',Georgia,'Times New Roman',serif;
     --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
@@ -59,6 +60,8 @@
   .t-poly{color:var(--plum); background:rgba(109,76,143,.10)}
   .t-diff{color:var(--teal); background:rgba(26,122,98,.10)}
   .t-mech{color:var(--amber); background:rgba(176,116,12,.10)}
+  .t-fail{color:var(--rose); background:rgba(166,58,94,.10)}
+  .t-phase{color:var(--steel); background:rgba(63,111,146,.10)}
   h2{
     font-family:var(--serif); font-weight:500; font-size:clamp(22px,3vw,30px);
     line-height:1.15; margin:0; color:var(--ink); letter-spacing:-.01em;
@@ -396,6 +399,14 @@
       <div class="frame"><iframe src="annealing.html" loading="lazy" title="Recovery, recrystallization, and grain growth on annealing a cold-worked metal"></iframe></div>
       <div class="card-foot"><a class="open" href="annealing.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
     </article>
+  </section>
+
+  <section id="failure" aria-labelledby="failure-h">
+    <div class="sec-head">
+      <span class="sec-tag t-fail">Failure &amp; service life</span>
+    </div>
+    <h2 id="failure-h">From a single flaw to fracture, fatigue, and creep</h2>
+    <div class="sec-rule"></div>
 
     <article class="card">
       <div class="card-head">
@@ -447,6 +458,40 @@
       </div>
       <div class="frame"><iframe src="creep-explorer.html" loading="lazy" title="Creep deformation and rupture under temperature and stress"></iframe></div>
       <div class="card-foot"><a class="open" href="creep-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+  </section>
+
+  <section id="phase" aria-labelledby="phase-h">
+    <div class="sec-head">
+      <span class="sec-tag t-phase">Phase diagrams</span>
+    </div>
+    <h2 id="phase-h">The map that tells you which phases form, and how much</h2>
+    <div class="sec-rule"></div>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">23</span>
+          <span class="chip">tie line &middot; lever rule</span>
+        </div>
+        <h3>A phase diagram is a map</h3>
+        <p class="desc">Drag a point anywhere on the copper&ndash;nickel diagram and read the map live: which phases are present, their compositions at the ends of the tie line, and how much of each from the lever rule, shown as a balance. Press Cool to drop the alloy straight down and watch it solidify.</p>
+      </div>
+      <div class="frame"><iframe src="phase-diagram-cu-ni.html" loading="lazy" title="Copper-nickel phase diagram with tie line and lever rule"></iframe></div>
+      <div class="card-foot"><a class="open" href="phase-diagram-cu-ni.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">24</span>
+          <span class="chip">Fe&ndash;Fe&#8323;C &middot; eutectoid</span>
+        </div>
+        <h3>One diagram, from soft iron to cast iron</h3>
+        <p class="desc">Drag a point on the iron&ndash;carbon diagram to a carbon content and temperature: the panel names the phases, flags whether the steel is hypo- or hypereutectoid, computes the lever-rule fractions, and sketches the resulting microstructure. Press Cool to room temperature to see what a given steel becomes &mdash; the one map behind soft iron, hard steel, and brittle cast iron.</p>
+      </div>
+      <div class="frame"><iframe src="iron-carbon-explorer.html" loading="lazy" title="Iron-carbon phase diagram with phases, steel class, and microstructure"></iframe></div>
+      <div class="card-foot"><a class="open" href="iron-carbon-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
     </article>
   </section>
 

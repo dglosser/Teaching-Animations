@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Iron–Carbon Explorer</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line);}
+  button{font-family:inherit;font-size:12.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:6px 11px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);}
+  label{font-size:12.5px;color:var(--mut);}
+  #main{display:flex;flex-wrap:wrap;}
+  #left{flex:1 1 460px;min-width:360px;padding:14px 20px;}
+  #right{flex:1 1 300px;min-width:280px;padding:16px 20px;background:#fff;border-left:1px solid var(--line);}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;cursor:crosshair;}
+  h2{font-family:Cambria,serif;font-size:14px;color:var(--navy);margin:0 0 8px;}
+  .region{font-family:Cambria,serif;font-size:19px;font-weight:700;margin:0 0 4px;}
+  .rd{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px dotted var(--line);}
+  .rd b{font-family:Cambria,serif;color:var(--navy);}
+  #micro{margin-top:10px;border:1px solid var(--line);border-radius:8px;width:100%;height:70px;display:block;}
+  .msg{font-size:12px;color:var(--mut);line-height:1.5;margin-top:10px;}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:4px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Iron–carbon explorer</h1>
+  <p>Drag a point: phases, hypo/hyper class, lever-rule fractions, and the microstructure · ENGR 170</p>
+</header>
+<div id="cap">This one diagram explains soft iron, hard steel, and brittle cast iron. Drag the point to a carbon content and temperature — the panel names the <b>phases</b>, whether the steel is <b>hypo- or hypereutectoid</b>, computes the <b>lever-rule fractions</b>, and sketches the resulting <b>microstructure</b>. Press <b>Cool to room T</b> to see what a given steel ends up as.</div>
+<div id="bar">
+  <button id="cool">▼ Cool to room T</button>
+  <button id="reset">↺ Reset</button>
+  <label>C <input type="range" id="cc" min="0.05" max="6.5" step="0.01" value="0.40" style="width:130px"></label>
+  <label>T <input type="range" id="tt" min="400" max="1150" value="760" style="width:120px"></label>
+</div>
+<div id="main">
+  <div id="left"><canvas id="cv" width="560" height="440"></canvas></div>
+  <div id="right">
+    <p class="region" id="reg">—</p>
+    <div class="rd"><span>carbon content</span><b id="rC">—</b></div>
+    <div class="rd"><span>temperature</span><b id="rT">—</b></div>
+    <div class="rd"><span>steel class</span><b id="rCls">—</b></div>
+    <div id="frac"></div>
+    <h2 style="margin-top:12px">Microstructure</h2>
+    <canvas id="micro" width="300" height="70"></canvas>
+    <div class="msg" id="msg"></div>
+  </div>
+</div>
+<div class="disc">Schematic Fe–C (Fe–Fe₃C) diagram: eutectoid 0.76 wt% C at 727 °C; ferrite max 0.022 %C; cementite 6.70 %C. Lever-rule fractions use the standard tie lines. Microstructure sketch is qualitative (proeutectoid phase at boundaries + pearlite lamellae).</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,Hh=cv.height;
+cv.width=W*dpr;cv.height=Hh*dpr;cv.style.height=Hh+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+const mc=$('micro'),mx=mc.getContext('2d');const MW=mc.width,MH=mc.height;
+mc.width=MW*dpr;mc.height=MH*dpr;mc.style.height=MH+'px';mx.setTransform(dpr,0,0,dpr,0,0);
+const CMAX=6.9,TMIN=380,TMAX=1160;
+const PAD={l:48,r:14,t:16,b:38};
+const X=c=>PAD.l+(W-PAD.l-PAD.r)*c/CMAX;
+const Y=T=>Hh-PAD.b-(Hh-PAD.t-PAD.b)*(T-TMIN)/(TMAX-TMIN);
+const Xinv=px=>CMAX*(px-PAD.l)/(W-PAD.l-PAD.r);
+const Yinv=py=>TMIN+(TMAX-TMIN)*(Hh-PAD.b-py)/(Hh-PAD.t-PAD.b);
+const A3=c=>912-(912-727)*(c/0.76);              // 0..0.76
+const Acm=c=>727+(1148-727)*Math.pow((c-0.76)/(2.14-0.76),0.9);  // 0.76..2.14
+let C=0.40,T=760,cooling=false;
+function region(){
+  // returns code
+  if(C<=2.14){
+    if(C<0.76){ if(T>A3(C)) return "g"; if(T>727) return "ag"; return "aFe"; }
+    else { if(T>Acm(Math.min(C,2.14))) return "g"; if(T>727) return "gFe"; return "aFe"; }
+  } else {
+    if(T>727) return "gFe"; return "aFe";
+  }
+}
+function draw(){
+  ctx.clearRect(0,0,W,Hh);
+  // region fills (coarse)
+  function fillPoly(pts,col){ctx.beginPath();pts.forEach((p,i)=>{const q=[X(p[0]),Y(p[1])];i?ctx.lineTo(...q):ctx.moveTo(...q);});ctx.closePath();ctx.fillStyle=col;ctx.fill();}
+  // austenite gamma
+  let g=[[0,912]]; for(let c=0;c<=0.76;c+=0.05)g.push([c,A3(c)]); for(let c=0.76;c<=2.14;c+=0.05)g.push([c,Acm(c)]); g.push([2.14,TMAX],[0,TMAX]);
+  fillPoly(g,"#DCE7F5");
+  // ferrite alpha (tiny left sliver below A3, C<0.022 mostly) -> approximate thin region
+  fillPoly([[0,TMIN],[0,912],[0.05,727],[0.05,TMIN]],"#E7F1EC");
+  // alpha+Fe3C (below 727)
+  fillPoly([[0.022,TMIN],[0.022,727],[6.9,727],[6.9,TMIN]],"#FBEAD2");
+  // gamma+Fe3C (above 727, C>0.76 to right)
+  fillPoly([[0.76,727],[2.14,Acm(2.14)],[2.14,727]].concat([[6.9,727],[6.9,TMAX],[2.14,TMAX]]),"#EFEAF3");
+  // alpha+gamma (0..0.76 between A3 and 727)
+  let ag=[]; for(let c=0;c<=0.76;c+=0.05)ag.push([c,A3(c)]); ag.push([0.76,727],[0.05,727]);
+  fillPoly(ag,"#EAF3EF");
+  // boundary curves
+  ctx.strokeStyle="#1F3864";ctx.lineWidth=2.2;ctx.beginPath();
+  for(let c=0;c<=0.76;c+=0.01){const x=X(c),y=Y(A3(c));c===0?ctx.moveTo(x,y):ctx.lineTo(x,y);} ctx.stroke();
+  ctx.beginPath();for(let c=0.76;c<=2.14;c+=0.01){const x=X(c),y=Y(Acm(c));c===0.76?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();
+  // eutectoid line
+  ctx.strokeStyle="#E8890C";ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(X(0.022),Y(727));ctx.lineTo(X(6.7),Y(727));ctx.stroke();
+  ctx.fillStyle="#E8890C";ctx.beginPath();ctx.arc(X(0.76),Y(727),5,0,7);ctx.fill();
+  // cementite line
+  ctx.strokeStyle="#21262E";ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(X(6.7),Y(TMIN));ctx.lineTo(X(6.7),Y(TMAX));ctx.stroke();
+  // axes
+  ctx.strokeStyle="#6B7480";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,Hh-PAD.b);ctx.lineTo(W-PAD.r,Hh-PAD.b);ctx.stroke();
+  ctx.fillStyle="#6B7480";ctx.font="11px Calibri";ctx.textAlign="center";
+  for(let c=0;c<=6;c+=1){ctx.fillText(c,X(c),Hh-PAD.b+16);}
+  ctx.fillText("carbon content (wt% C)",(PAD.l+W-PAD.r)/2,Hh-6);
+  ctx.textAlign="right";for(let t=400;t<=1100;t+=100){ctx.fillText(t,PAD.l-4,Y(t)+4);}
+  ctx.save();ctx.translate(13,(PAD.t+Hh-PAD.b)/2);ctx.rotate(-Math.PI/2);ctx.textAlign="center";ctx.fillText("temperature (°C)",0,0);ctx.restore();
+  // labels
+  ctx.font="bold 13px Cambria";ctx.textAlign="center";
+  ctx.fillStyle="#2E5496";ctx.fillText("γ austenite",X(1.1),Y(1000));
+  ctx.fillStyle="#1F7A63";ctx.fillText("α",X(0.14),Y(560));
+  ctx.fillStyle="#E8890C";ctx.font="bold 12px Cambria";ctx.fillText("α + Fe₃C",X(3.2),Y(560));
+  // point + tie line to nearest boundaries at 727-ish
+  ctx.strokeStyle="#9AA5B1";ctx.setLineDash([4,3]);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(C),PAD.t);ctx.lineTo(X(C),Hh-PAD.b);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle="#fff";ctx.strokeStyle="#1F3864";ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(X(C),Y(T),8,0,7);ctx.fill();ctx.stroke();
+  update();
+}
+function update(){
+  const reg=region();
+  $('rC').textContent=C.toFixed(2)+" wt% C";$('rT').textContent=T.toFixed(0)+" °C";
+  const names={g:"Austenite (γ) only",ag:"Ferrite α + Austenite γ",aFe:"Ferrite α + Cementite Fe₃C",gFe:"Austenite γ + Cementite Fe₃C"};
+  const cols={g:"#2E5496",ag:"#1F7A63",aFe:"#E8890C",gFe:"#6D4C7D"};
+  $('reg').textContent=names[reg];$('reg').style.color=cols[reg];
+  $('rCls').textContent = C<0.76?"hypoeutectoid":(C>0.76?(C<2.14?"hypereutectoid":"cast iron"):"eutectoid (0.76%)");
+  // fractions if below 727 (total phases via 0.022 - 6.70 tie line)
+  let fr="";
+  if(reg==="aFe"){
+    const Wa=(6.70-C)/(6.70-0.022), Wc=(C-0.022)/(6.70-0.022);
+    fr='<div class="rd"><span>total ferrite W_α</span><b>'+(Wa*100).toFixed(0)+'%</b></div>'+
+       '<div class="rd"><span>total cementite W_Fe₃C</span><b>'+(Wc*100).toFixed(0)+'%</b></div>';
+    if(C<0.76){const Wpf=(0.76-C)/(0.76-0.022), Wpe=(C-0.022)/(0.76-0.022);
+      fr+='<div class="rd"><span>proeutectoid ferrite</span><b>'+(Wpf*100).toFixed(0)+'%</b></div>'+
+          '<div class="rd"><span>pearlite</span><b>'+(Wpe*100).toFixed(0)+'%</b></div>';}
+    else if(C<2.14){const Wpc=(C-0.76)/(6.70-0.76), Wpe=(6.70-C)/(6.70-0.76);
+      fr+='<div class="rd"><span>proeutectoid cementite</span><b>'+(Wpc*100).toFixed(0)+'%</b></div>'+
+          '<div class="rd"><span>pearlite</span><b>'+(Wpe*100).toFixed(0)+'%</b></div>';}
+  }
+  $('frac').innerHTML=fr;
+  drawMicro(reg);
+  let m;
+  if(reg==="g") m="All austenite — the hot, FCC phase that holds carbon in solution. Cool it and it will transform.";
+  else if(reg==="aFe"&&C<0.76) m="Below 727 °C: soft proeutectoid ferrite formed first at grain boundaries; the rest became pearlite (fine ferrite + cementite).";
+  else if(reg==="aFe"&&C>=0.76&&C<2.14) m="Below 727 °C: hard proeutectoid cementite lined the boundaries; the rest became pearlite. More carbon → more cementite → harder, more brittle.";
+  else if(reg==="aFe") m="Below 727 °C, high carbon — the α + Fe₃C field. Lots of hard cementite.";
+  else m="Two phases coexisting — keep cooling below 727 °C to reach the final room-temperature structure.";
+  $('msg').textContent=m;
+}
+function drawMicro(reg){
+  mx.clearRect(0,0,MW,MH);
+  mx.fillStyle="#F7FAFD";mx.fillRect(0,0,MW,MH);
+  function pearlite(x0,x1){for(let x=x0;x<x1;x+=6){mx.fillStyle="#CDEBDD";mx.fillRect(x,4,3.5,MH-8);mx.fillStyle="#3A3A3A";mx.fillRect(x+3.5,4,2.5,MH-8);}}
+  if(reg==="g"){mx.fillStyle="#DCE7F5";mx.fillRect(4,4,MW-8,MH-8);mx.fillStyle="#2E5496";mx.font="12px Calibri";mx.textAlign="center";mx.fillText("uniform austenite (γ)",MW/2,MH/2+4);}
+  else if(reg==="aFe"&&C<0.76){
+    // ferrite blobs + pearlite
+    mx.fillStyle="#DFF0E7";for(const cx of [30,90,150,225,275]){mx.beginPath();mx.arc(cx,MH/2,16,0,7);mx.fill();mx.strokeStyle="#1F7A63";mx.stroke();}
+    pearlite(110,200);
+    mx.fillStyle="#1F7A63";mx.font="9px Calibri";mx.textAlign="left";mx.fillText("ferrite + pearlite",6,12);
+  } else if(reg==="aFe"&&C>=0.76&&C<2.14){
+    pearlite(20,MW-20);
+    mx.strokeStyle="#6D4C7D";mx.lineWidth=4;mx.strokeRect(4,4,MW-8,MH-8);
+    mx.fillStyle="#6D4C7D";mx.font="9px Calibri";mx.textAlign="left";mx.fillText("cementite network + pearlite",6,12);
+  } else if(reg==="aFe"){ pearlite(20,MW-20); }
+  else { mx.fillStyle="#6B7480";mx.font="11px Calibri";mx.textAlign="center";mx.fillText("(cool below 727 °C)",MW/2,MH/2+4); }
+}
+let drag=false;
+function setXY(cx,cy){const r=cv.getBoundingClientRect();
+  C=Math.max(0.05,Math.min(6.7,Xinv((cx-r.left)*W/r.width)));
+  T=Math.max(TMIN+5,Math.min(TMAX-5,Yinv((cy-r.top)*Hh/r.height)));
+  $('cc').value=C;$('tt').value=T;draw();}
+cv.addEventListener('mousedown',e=>{drag=true;cooling=false;setXY(e.clientX,e.clientY);});
+window.addEventListener('mousemove',e=>{if(drag)setXY(e.clientX,e.clientY);});
+window.addEventListener('mouseup',()=>drag=false);
+cv.addEventListener('touchstart',e=>{cooling=false;setXY(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
+cv.addEventListener('touchmove',e=>{setXY(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
+$('cc').oninput=e=>{C=+e.target.value;draw();};
+$('tt').oninput=e=>{T=+e.target.value;draw();};
+$('reset').onclick=()=>{C=0.40;T=760;$('cc').value=0.40;$('tt').value=760;cooling=false;draw();};
+$('cool').onclick=()=>{cooling=true;T=1120;$('tt').value=T;
+  const step=()=>{if(!cooling)return;T-=8;if(T<=430){T=430;cooling=false;}$('tt').value=T;draw();if(cooling)requestAnimationFrame(step);};requestAnimationFrame(step);};
+draw();
+</script>
+</body>
+</html>

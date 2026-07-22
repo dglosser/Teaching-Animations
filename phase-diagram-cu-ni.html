@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Phase Diagram Explorer — Cu–Ni</title>
+<style>
+  :root{--navy:#1F3864;--steel:#2E5496;--teal:#1F7A63;--amber:#E8890C;--terra:#B85042;--purp:#6D4C7D;
+    --ink:#21262E;--mut:#6B7480;--line:#C7CFDA;--bg:#F1F4F8;--ice:#D9E1F2;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;font-family:Calibri,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+  header{padding:12px 20px 9px;background:var(--navy);color:#fff;}
+  header h1{margin:0;font-family:Cambria,Georgia,serif;font-size:21px;}
+  header p{margin:3px 0 0;color:#B9C6E0;font-size:12.5px;}
+  #cap{padding:9px 20px;background:#fff;border-bottom:1px solid var(--line);font-size:13.5px;line-height:1.5;}
+  #cap b{color:var(--navy);}
+  #bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:10px 20px;background:#fff;border-bottom:1px solid var(--line);}
+  button{font-family:inherit;font-size:12.5px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--navy);padding:6px 11px;border-radius:8px;cursor:pointer;}
+  button:hover{border-color:var(--steel);} button.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  label{font-size:12.5px;color:var(--mut);}
+  #main{display:flex;flex-wrap:wrap;}
+  #left{flex:1 1 460px;min-width:360px;padding:14px 20px;}
+  #right{flex:1 1 300px;min-width:280px;padding:16px 20px;background:#fff;border-left:1px solid var(--line);}
+  canvas{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:10px;cursor:crosshair;}
+  h2{font-family:Cambria,serif;font-size:14px;color:var(--navy);margin:0 0 10px;}
+  .region{font-family:Cambria,serif;font-size:20px;font-weight:700;margin:0 0 4px;}
+  .rd{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px dotted var(--line);}
+  .rd b{font-family:Cambria,serif;color:var(--navy);}
+  .prop{margin-top:10px;}
+  .prop .hd{display:flex;justify-content:space-between;font-size:12.5px;}
+  .track{height:20px;background:#E2E8F1;border-radius:10px;overflow:hidden;margin-top:3px;position:relative;}
+  .fill{height:100%;width:0;border-radius:10px;transition:width .12s ease;}
+  .msg{font-size:12px;color:var(--mut);line-height:1.5;margin-top:10px;}
+  .disc{font-size:11px;color:var(--mut);font-style:italic;padding:4px 20px 14px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Phase Diagram Explorer — copper–nickel</h1>
+  <p>Drag the point: read the region, the tie line, and the lever rule live · ENGR 170</p>
+</header>
+<div id="cap">A phase diagram is a <b>map</b>. Drag the white point anywhere — the panel tells you <b>which phases</b> are present, <b>their compositions</b> (the tie-line ends), and <b>how much of each</b> (the lever rule, shown as a balance). Press <b>Cool</b> to drop straight down and watch an alloy solidify.</div>
+<div id="bar">
+  <button id="cool">▼ Cool this alloy</button>
+  <button id="reset">↺ Reset</button>
+  <label>Point: drag on the diagram, or</label>
+  <label>C₀ <input type="range" id="c0" min="2" max="98" value="35" style="width:110px"></label>
+  <label>T <input type="range" id="tt" min="1060" max="1490" value="1250" style="width:110px"></label>
+</div>
+<div id="main">
+  <div id="left"><canvas id="cv" width="560" height="440"></canvas></div>
+  <div id="right">
+    <p class="region" id="reg">—</p>
+    <div class="rd"><span>point: composition C₀</span><b id="rC0">—</b></div>
+    <div class="rd"><span>temperature</span><b id="rT">—</b></div>
+    <div id="two" style="display:none">
+      <div class="rd"><span>liquid composition C_L</span><b id="rCL">—</b></div>
+      <div class="rd"><span>solid composition C_α</span><b id="rCA">—</b></div>
+      <h2 style="margin-top:12px">How much of each (lever rule)</h2>
+      <div class="prop"><div class="hd"><span style="color:var(--steel);font-weight:700">liquid  W_L</span><span id="wWL"></span></div><div class="track"><div class="fill" id="fWL" style="background:var(--steel)"></div></div></div>
+      <div class="prop"><div class="hd"><span style="color:var(--teal);font-weight:700">solid α  W_α</span><span id="wWA"></span></div><div class="track"><div class="fill" id="fWA" style="background:var(--teal)"></div></div></div>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+</div>
+<div class="disc">Schematic Cu–Ni diagram (liquidus/solidus fit for teaching; values approximate the real system). Lever rule: W_L = (C_α−C₀)/(C_α−C_L), W_α = (C₀−C_L)/(C_α−C_L) — each phase fraction is the <i>opposite</i> tie-line segment over the whole. Fractions always sum to 1.</div>
+<script>
+const $=id=>document.getElementById(id);
+const dpr=Math.min(window.devicePixelRatio||1,2);
+const cv=$('cv'),ctx=cv.getContext('2d');const W=cv.width,H=cv.height;
+cv.width=W*dpr;cv.height=H*dpr;cv.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+const CMIN=0,CMAX=100,TMIN=1040,TMAX=1500;
+const PAD={l:52,r:14,t:16,b:40};
+const liquidus=c=>1085+370*Math.pow(c/100,0.71);
+const solidus =c=>1085+370*Math.pow(c/100,0.96);
+const cLiquidus=T=>100*Math.pow((T-1085)/370,1/0.71);   // composition on liquidus at temp T
+const cSolidus =T=>100*Math.pow((T-1085)/370,1/0.96);
+const X=c=>PAD.l+(W-PAD.l-PAD.r)*(c-CMIN)/(CMAX-CMIN);
+const Y=T=>H-PAD.b-(H-PAD.t-PAD.b)*(T-TMIN)/(TMAX-TMIN);
+const Xinv=px=>CMIN+(CMAX-CMIN)*(px-PAD.l)/(W-PAD.l-PAD.r);
+const Yinv=py=>TMIN+(TMAX-TMIN)*(H-PAD.b-py)/(H-PAD.t-PAD.b);
+let C0=35,T=1250, cooling=false;
+function region(){
+  const TL=liquidus(C0), TS=solidus(C0);
+  if(T>=TL) return "L";
+  if(T<=TS) return "A";
+  return "AL";
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // region fills via polygons
+  function poly(getTop,getBot,col){ctx.beginPath();let first=true;
+    for(let c=0;c<=100;c+=1){const x=X(c),y=Y(Math.min(TMAX,getTop(c)));first?ctx.moveTo(x,y):ctx.lineTo(x,y);first=false;}
+    for(let c=100;c>=0;c-=1){const x=X(c),y=Y(Math.max(TMIN,getBot(c)));ctx.lineTo(x,y);}
+    ctx.closePath();ctx.fillStyle=col;ctx.fill();}
+  poly(c=>TMAX,c=>liquidus(c),"#E9F0F8");        // liquid
+  poly(c=>liquidus(c),c=>solidus(c),"#FBEAD2");  // alpha+L
+  poly(c=>solidus(c),c=>TMIN,"#E7F1EC");         // alpha
+  // curves
+  function curve(f,col){ctx.beginPath();for(let c=0;c<=100;c+=0.5){const x=X(c),y=Y(f(c));c===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.strokeStyle=col;ctx.lineWidth=2.6;ctx.stroke();}
+  curve(liquidus,"#1F3864"); curve(solidus,"#B85042");
+  // axes
+  ctx.strokeStyle="#6B7480";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,H-PAD.b);ctx.lineTo(W-PAD.r,H-PAD.b);ctx.stroke();
+  ctx.fillStyle="#6B7480";ctx.font="11px Calibri";ctx.textAlign="center";
+  for(let c=0;c<=100;c+=20){ctx.fillText(c,X(c),H-PAD.b+16);}
+  ctx.fillText("composition (wt% Ni)",(PAD.l+W-PAD.r)/2,H-6);
+  ctx.textAlign="right";for(let t=1100;t<=1500;t+=100){ctx.fillText(t,PAD.l-5,Y(t)+4);}
+  ctx.save();ctx.translate(14,(PAD.t+H-PAD.b)/2);ctx.rotate(-Math.PI/2);ctx.textAlign="center";ctx.fillText("temperature (°C)",0,0);ctx.restore();
+  // region labels
+  ctx.font="bold 15px Cambria";ctx.textAlign="center";
+  ctx.fillStyle="#2E5496";ctx.fillText("L (liquid)",X(20),Y(1440));
+  ctx.fillStyle="#E8890C";ctx.fillText("α + L",X(52),Y(1300));
+  ctx.fillStyle="#1F7A63";ctx.fillText("α (solid)",X(78),Y(1120));
+  // alloy vertical line
+  ctx.strokeStyle="#9AA5B1";ctx.setLineDash([4,3]);ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(X(C0),PAD.t);ctx.lineTo(X(C0),H-PAD.b);ctx.stroke();ctx.setLineDash([]);
+  // tie line if two-phase
+  const reg=region();
+  if(reg==="AL"){
+    const CL=cLiquidus(T), CA=cSolidus(T);
+    ctx.strokeStyle="#6D4C7D";ctx.lineWidth=2.4;
+    ctx.beginPath();ctx.moveTo(X(CL),Y(T));ctx.lineTo(X(CA),Y(T));ctx.stroke();
+    ctx.fillStyle="#2E5496";ctx.beginPath();ctx.arc(X(CL),Y(T),5,0,7);ctx.fill();
+    ctx.fillStyle="#1F7A63";ctx.beginPath();ctx.arc(X(CA),Y(T),5,0,7);ctx.fill();
+    ctx.font="bold 11px Calibri";ctx.textAlign="center";
+    ctx.fillStyle="#2E5496";ctx.fillText("C_L",X(CL),Y(T)-9);
+    ctx.fillStyle="#1F7A63";ctx.fillText("C_α",X(CA),Y(T)-9);
+  }
+  // the point
+  ctx.fillStyle="#fff";ctx.strokeStyle="#1F3864";ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.arc(X(C0),Y(T),8,0,7);ctx.fill();ctx.stroke();
+  updatePanel(reg);
+}
+function updatePanel(reg){
+  $('rC0').textContent=C0.toFixed(1)+" wt% Ni";
+  $('rT').textContent=T.toFixed(0)+" °C";
+  const names={L:"Liquid (L) only",A:"Solid α only",AL:"Two phases: α + L"};
+  const cols={L:"#2E5496",A:"#1F7A63",AL:"#E8890C"};
+  $('reg').textContent=names[reg];$('reg').style.color=cols[reg];
+  if(reg==="AL"){
+    $('two').style.display="block";
+    const CL=cLiquidus(T),CA=cSolidus(T);
+    const WL=(CA-C0)/(CA-CL), WA=(C0-CL)/(CA-CL);
+    $('rCL').textContent=CL.toFixed(1)+" wt% Ni";
+    $('rCA').textContent=CA.toFixed(1)+" wt% Ni";
+    $('fWL').style.width=(WL*100).toFixed(0)+"%";$('wWL').textContent=(WL*100).toFixed(0)+"%";
+    $('fWA').style.width=(WA*100).toFixed(0)+"%";$('wWA').textContent=(WA*100).toFixed(0)+"%";
+    const more = WL>WA?"liquid":"solid α";
+    $('msg').innerHTML="C₀ is closer to <b>"+(WL>WA?"C_L":"C_α")+"</b>, so there's more <b>"+more+"</b>. (The phase fraction uses the <i>opposite</i> tie-line arm.)";
+  } else {
+    $('two').style.display="none";
+    $('msg').innerHTML = reg==="L"
+      ? "Above the liquidus — the alloy is entirely molten. Cool it to start freezing."
+      : "Below the solidus — fully solid α, one uniform composition (C₀) throughout.";
+  }
+}
+// interaction
+let drag=false;
+function setFromXY(clientX,clientY){const r=cv.getBoundingClientRect();
+  C0=Math.max(1,Math.min(99,Xinv((clientX-r.left)*W/r.width)));
+  T=Math.max(TMIN+5,Math.min(TMAX-5,Yinv((clientY-r.top)*H/r.height)));
+  $('c0').value=C0;$('tt').value=T;draw();}
+cv.addEventListener('mousedown',e=>{drag=true;cooling=false;setFromXY(e.clientX,e.clientY);});
+window.addEventListener('mousemove',e=>{if(drag)setFromXY(e.clientX,e.clientY);});
+window.addEventListener('mouseup',()=>drag=false);
+cv.addEventListener('touchstart',e=>{cooling=false;setFromXY(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
+cv.addEventListener('touchmove',e=>{setFromXY(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
+$('c0').oninput=e=>{C0=+e.target.value;draw();};
+$('tt').oninput=e=>{T=+e.target.value;draw();};
+$('reset').onclick=()=>{C0=35;T=1250;$('c0').value=35;$('tt').value=1250;cooling=false;draw();};
+$('cool').onclick=()=>{cooling=true;T=1490;$('tt').value=T;
+  const step=()=>{if(!cooling)return;T-=3;if(T<=1080){T=1080;cooling=false;}$('tt').value=T;draw();if(cooling)requestAnimationFrame(step);};
+  requestAnimationFrame(step);};
+draw();
+</script>
+</body>
+</html>
