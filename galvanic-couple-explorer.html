@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galvanic Couple Explorer</title>
+<style>
+  :root{--navy:#1F3864;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;--purp:#6D4C7D;--steel:#2E5496;--green:#2C6E49;--slate:#3F4A5A;--mut:#6B7480;--line:#C7CFDA;--ice:#D9E1F2;--light:#F1F4F8;--bg:#FFFFFF;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--slate);font-family:Calibri,'Segoe UI',system-ui,sans-serif;line-height:1.45;}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 20px 40px;}
+  h1{font-family:Cambria,Georgia,serif;color:var(--navy);font-size:25px;margin:2px 0 2px;}
+  .sub{color:var(--mut);font-size:15px;margin:0 0 14px;}
+  .stage{background:var(--light);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:18px;flex-wrap:wrap;}
+  .canvaswrap{flex:1 1 520px;min-width:340px;}
+  canvas{width:100%;height:auto;display:block;border-radius:8px;background:#fff;}
+  .panel{flex:1 1 300px;min-width:280px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .card h3{margin:0 0 8px;font-family:Cambria,serif;font-size:16px;color:var(--navy);}
+  label{font-size:13.5px;display:block;margin:8px 0 3px;}
+  select{width:100%;font-family:Calibri;font-size:14px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:#fff;}
+  .row{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px dashed #e6ebf2;} .row:last-child{border-bottom:none;}
+  .row .k{color:var(--mut);font-size:13.5px;} .row .v{font-weight:bold;font-size:15px;}
+  .verdict{font-family:Cambria,serif;font-size:19px;font-weight:bold;margin-top:2px;}
+  .hint{font-size:13px;color:var(--mut);margin:8px 2px 0;} b.term{color:var(--navy);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Galvanic Couple Explorer — who corrodes?</h1>
+  <p class="sub">Bolt two different metals together in salt water and one is sacrificed. The <b>more active</b> (more negative electrode potential) becomes the
+     <b style="color:var(--terra)">anode</b> and corrodes; the nobler one is protected. Pick a pair and see.</p>
+
+  <div class="stage">
+    <div class="canvaswrap">
+      <canvas id="cv" width="720" height="430"></canvas>
+    </div>
+    <div class="panel">
+      <div class="card">
+        <h3>Couple two metals</h3>
+        <label>Metal A</label>
+        <select id="ma"></select>
+        <label>Metal B</label>
+        <select id="mb"></select>
+      </div>
+      <div class="card">
+        <h3>Result</h3>
+        <div class="row"><span class="k">Corrodes (anode)</span><span class="v" id="oan" style="color:var(--terra)">—</span></div>
+        <div class="row"><span class="k">Protected (cathode)</span><span class="v" id="oca" style="color:var(--steel)">—</span></div>
+        <div class="row"><span class="k">Driving voltage</span><span class="v" id="ov">—</span></div>
+        <div class="verdict" id="orate">—</div>
+      </div>
+    </div>
+  </div>
+  <p class="hint"><b class="term">Electrode potential</b> ranks how badly a metal wants to give up electrons. The metal with the more negative value is more active, so it loses that tug-of-war and dissolves.
+     The <b>driving voltage</b> is the gap between the two — a bigger gap means a stronger galvanic cell and faster attack. (This is why you never bolt bare aluminum to copper outdoors.)</p>
+</div>
+
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const CSS={navy:'#1F3864',terra:'#B85042',teal:'#1F7A63',amber:'#E8890C',steel:'#2E5496',green:'#2C6E49',slate:'#3F4A5A',mut:'#6B7480',line:'#C7CFDA',light:'#F1F4F8'};
+// name, standard electrode (reduction) potential V vs SHE, fill color
+const METALS=[
+  ['Magnesium',-2.37,'#9AA6B2'],['Aluminum',-1.66,'#B7BFC9'],['Zinc',-0.76,'#8FA0AE'],
+  ['Chromium',-0.74,'#7E8A98'],['Iron / steel',-0.44,'#8A939E'],['Nickel',-0.25,'#9EA2A6'],
+  ['Tin',-0.14,'#B9BEC4'],['Lead',-0.13,'#7C818A'],['Copper',0.34,'#C9772F'],
+  ['Silver',0.80,'#C0C6CC'],['Gold',1.50,'#D9A400']
+];
+let ia=4, ib=8; // steel & copper
+let W=720,H=430;
+
+function draw(){
+  const dpr=window.devicePixelRatio||1,cssW=cv.clientWidth||720,cssH=cssW*(H/W);
+  cv.width=cssW*dpr;cv.height=cssH*dpr;W=cssW;H=cssH;ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);ctx.font='12px Calibri';
+  const A=METALS[ia], B=METALS[ib];
+  const anodeIdx = A[1]<=B[1]? ia: ib;   // more negative = anode
+  const cathIdx  = anodeIdx===ia? ib: ia;
+  const an=METALS[anodeIdx], ca=METALS[cathIdx];
+  const V=Math.abs(A[1]-B[1]);
+  const same = ia===ib;
+
+  // electrolyte
+  ctx.fillStyle='#E7F0FA'; ctx.strokeStyle=CSS.steel; ctx.lineWidth=1.5;
+  roundRect(120,150,W-240,H-190,10); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=CSS.steel; ctx.textAlign='center'; ctx.font='italic 12px Calibri';
+  ctx.fillText('electrolyte (salt water)',W/2,H-24);
+
+  // electrodes
+  const exL=W*0.28, exR=W*0.72, ew=40, etop=90, ebot=H-70;
+  // anode on left, cathode on right (by role)
+  drawElectrode(exL,etop,ebot,ew,an,true, same);
+  drawElectrode(exR,etop,ebot,ew,ca,false, same);
+
+  // wire + electrons anode->cathode
+  ctx.strokeStyle=CSS.slate; ctx.lineWidth=2.2;
+  ctx.beginPath(); ctx.moveTo(exL,etop); ctx.lineTo(exL,60); ctx.lineTo(exR,60); ctx.lineTo(exR,etop); ctx.stroke();
+  if(!same){
+    ctx.fillStyle=CSS.amber; ctx.font='bold 12px Calibri';
+    ctx.textAlign='center'; ctx.fillText('e⁻  →',(exL+exR)/2,54);
+    // arrow
+    ctx.strokeStyle=CSS.amber; ctx.lineWidth=2.2;
+    ctx.beginPath(); ctx.moveTo(W/2-18,72); ctx.lineTo(W/2+18,72); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W/2+18,72); ctx.lineTo(W/2+11,68); ctx.lineTo(W/2+11,76); ctx.fill();
+  }
+  updateReadout(same,an,ca,V);
+}
+function drawElectrode(cx,top,bot,w,m,isAnode,same){
+  ctx.fillStyle=m[2]; ctx.strokeStyle=CSS.slate; ctx.lineWidth=1.5;
+  ctx.fillRect(cx-w/2,top,w,bot-top); ctx.strokeRect(cx-w/2,top,w,bot-top);
+  if(isAnode && !same){ // pitting
+    ctx.fillStyle='#E7F0FA';
+    for(let yy=top+40;yy<bot-10;yy+=26){ ctx.beginPath(); ctx.arc(cx-w/2,yy,3.5,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(cx+w/2,yy+12,3,0,7); ctx.fill(); }
+  }
+  ctx.fillStyle=CSS.slate; ctx.textAlign='center'; ctx.font='bold 13px Calibri';
+  ctx.fillText(m[0], cx, top-24);
+  ctx.font='12px Calibri'; ctx.fillStyle=CSS.mut;
+  ctx.fillText('E = '+(m[1]>=0?'+':'')+m[1].toFixed(2)+' V', cx, top-8);
+  if(!same){ ctx.font='bold 12.5px Cambria';
+    ctx.fillStyle=isAnode?CSS.terra:CSS.steel;
+    ctx.fillText(isAnode?'ANODE — corrodes':'CATHODE — protected', cx, bot+22); }
+}
+function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+function updateReadout(same,an,ca,V){
+  if(same){
+    document.getElementById('oan').textContent='—';
+    document.getElementById('oca').textContent='—';
+    document.getElementById('ov').textContent='0.00 V';
+    const el=document.getElementById('orate'); el.textContent='Same metal — no galvanic cell'; el.style.color=CSS.mut;
+    return;
+  }
+  document.getElementById('oan').textContent=an[0];
+  document.getElementById('oca').textContent=ca[0];
+  document.getElementById('ov').textContent=V.toFixed(2)+' V';
+  const el=document.getElementById('orate');
+  let txt,col;
+  if(V<0.15){ txt='Mild — small driving force'; col=CSS.green; }
+  else if(V<0.6){ txt='Moderate galvanic attack'; col=CSS.amber; }
+  else if(V<1.2){ txt='Strong — expect fast attack'; col=CSS.terra; }
+  else { txt='Severe — large mismatch'; col=CSS.terra; }
+  el.textContent=txt; el.style.color=col;
+}
+
+function fill(sel,idx){ METALS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m[0]+'  ('+(m[1]>=0?'+':'')+m[1].toFixed(2)+' V)'; if(i===idx)o.selected=true; sel.appendChild(o); }); }
+fill(document.getElementById('ma'),ia); fill(document.getElementById('mb'),ib);
+document.getElementById('ma').addEventListener('change',e=>{ia=+e.target.value;draw();});
+document.getElementById('mb').addEventListener('change',e=>{ib=+e.target.value;draw();});
+window.addEventListener('resize',draw);
+draw();
+</script>
+</body>
+</html>

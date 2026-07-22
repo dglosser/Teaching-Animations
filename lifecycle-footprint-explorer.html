@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Life-Cycle Footprint Explorer</title>
+<style>
+  :root{--navy:#1F3864;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;--purp:#6D4C7D;--steel:#2E5496;--green:#2C6E49;--slate:#3F4A5A;--mut:#6B7480;--line:#C7CFDA;--ice:#D9E1F2;--light:#F1F4F8;--bg:#FFFFFF;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--slate);font-family:Calibri,'Segoe UI',system-ui,sans-serif;line-height:1.45;}
+  .wrap{max-width:980px;margin:0 auto;padding:18px 20px 40px;}
+  h1{font-family:Cambria,Georgia,serif;color:var(--navy);font-size:25px;margin:2px 0 2px;}
+  .sub{color:var(--mut);font-size:15px;margin:0 0 14px;}
+  .stage{display:flex;gap:18px;flex-wrap:wrap;}
+  .col{flex:1 1 330px;min-width:300px;background:var(--light);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  h3{font-family:Cambria,serif;color:var(--navy);font-size:16px;margin:0 0 8px;}
+  label{font-size:13.5px;display:block;margin:10px 0 3px;}
+  select{width:100%;font-family:Calibri;font-size:14px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:#fff;}
+  input[type=range]{width:100%;accent-color:var(--green);}
+  .slab .top{display:flex;justify-content:space-between;font-size:13.5px;} .slab .top b{color:var(--navy);}
+  .big{text-align:center;margin:4px 0 10px;}
+  .big .num{font-family:Cambria,serif;font-size:34px;font-weight:bold;color:var(--terra);}
+  .big .unit{font-size:14px;color:var(--mut);}
+  canvas{width:100%;height:auto;display:block;margin-top:6px;}
+  .row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #e6ebf2;font-size:13.5px;} .row:last-child{border-bottom:none;}
+  .row b{font-size:14.5px;}
+  .note{font-size:12.5px;color:var(--mut);margin-top:8px;}
+  .hint{font-size:13px;color:var(--mut);margin:8px 2px 0;} b.term{color:var(--navy);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Life-Cycle Footprint Explorer</h1>
+  <p class="sub">A material's real cost isn't just its price — it's the energy and carbon locked into making it (its <b>embodied energy</b>),
+     spread over how long the part lasts. Choose a material, how much is recycled, and its service life.</p>
+
+  <div class="stage">
+    <div class="col">
+      <h3>Design choices</h3>
+      <label>Material</label>
+      <select id="mat"></select>
+      <div class="slab"><label>Recycled content = <b id="lrec">30%</b></label><input type="range" id="rec" min="0" max="100" step="5" value="30"><div class="note" id="recyc"></div></div>
+      <div class="slab"><label>Part mass = <b id="lm">10 kg</b></label><input type="range" id="m" min="0.5" max="100" step="0.5" value="10"></div>
+      <div class="slab"><label>Service life = <b id="lt">15 years</b></label><input type="range" id="t" min="1" max="60" step="1" value="15"><div class="note">A part that lasts twice as long halves its impact per year.</div></div>
+    </div>
+
+    <div class="col">
+      <h3>Footprint of this choice</h3>
+      <div class="big"><span class="num" id="oCO2">—</span><div class="unit">kg CO₂ embodied (total)</div></div>
+      <div class="row"><span>Embodied energy (total)</span><b id="oE">—</b></div>
+      <div class="row"><span>Per year of service</span><b id="oyr">—</b></div>
+      <div class="row"><span>Saved vs all-primary</span><b id="osav" style="color:var(--green)">—</b></div>
+      <canvas id="bars" width="360" height="150"></canvas>
+      <div class="note">Bars: all-primary vs your recycled mix vs all-recycled (embodied energy).</div>
+    </div>
+  </div>
+  <p class="hint"><b class="term">Embodied energy</b> is the energy spent to pull the ore, refine it, and form the part — often far more than the part uses in service.
+     Recycling skips most of the refining step, so it slashes both energy and CO₂ (hugely for aluminum). Durability multiplies the win: fewer replacements over the years.</p>
+</div>
+
+<script>
+const bars=document.getElementById('bars'),bx=bars.getContext('2d');
+const CSS={navy:'#1F3864',terra:'#B85042',teal:'#1F7A63',amber:'#E8890C',steel:'#2E5496',green:'#2C6E49',slate:'#3F4A5A',mut:'#6B7480',line:'#C7CFDA'};
+// name, E_primary, E_recycled (MJ/kg), CO2_primary, CO2_recycled (kg/kg), recyclability text
+const MATS=[
+  ['Aluminum',210,20,12.0,1.3,'Highly recyclable — recycling uses ~10% of primary energy.'],
+  ['Steel',30,12,2.3,0.9,'Very recyclable; magnetic separation makes recovery easy.'],
+  ['Copper',55,18,3.5,1.1,'Recyclable with little loss of properties.'],
+  ['Titanium',650,120,35,8,'Recyclable but energy-intensive to produce.'],
+  ['Glass',15,8,0.9,0.5,'Recyclable; recycled cullet lowers melt energy.'],
+  ['CFRP (carbon)',300,250,20,17,'Hard to recycle — thermoset matrix limits recovery.'],
+  ['Concrete',1.5,1.2,0.13,0.11,'Usually downcycled as aggregate, not truly recycled.'],
+  ['PET plastic',85,45,2.7,1.5,'Recyclable but quality degrades each cycle.']
+];
+let im=0;
+const el=id=>document.getElementById(id);
+function fmt(v){ return v>=1000? (v/1000).toFixed(1)+'k' : v>=100? v.toFixed(0) : v.toFixed(1); }
+
+function compute(){
+  const M=MATS[im], rec=+el('rec').value/100, m=+el('m').value, life=+el('t').value;
+  el('lrec').textContent=(rec*100).toFixed(0)+'%'; el('lm').textContent=m+' kg'; el('lt').textContent=life+' years';
+  el('recyc').textContent=M[5];
+  const Emix=m*((1-rec)*M[1]+rec*M[2]);          // MJ
+  const CO2=m*((1-rec)*M[3]+rec*M[4]);           // kg
+  const Eprim=m*M[1], Erec=m*M[2];
+  el('oCO2').textContent=fmt(CO2);
+  el('oE').textContent=fmt(Emix)+' MJ';
+  el('oyr').textContent=fmt(Emix/life)+' MJ/yr';
+  const saved=(1-Emix/Eprim)*100;
+  el('osav').textContent=saved.toFixed(0)+'% less energy';
+  drawBars(Eprim,Emix,Erec);
+}
+function drawBars(prim,mix,rec){
+  const dpr=window.devicePixelRatio||1,w=bars.clientWidth||360,h=150;
+  bars.width=w*dpr;bars.height=h*dpr;bx.setTransform(dpr,0,0,dpr,0,0);bx.clearRect(0,0,w,h);
+  const max=prim*1.05, base=h-26, top=12;
+  const labels=['primary','your mix','recycled'], vals=[prim,mix,rec], cols=[CSS.terra,CSS.amber,CSS.green];
+  const bw=w/3*0.5;
+  vals.forEach((v,i)=>{ const cx=w/6+(i)*w/3; const bh=(v/max)*(base-top); const y=base-bh;
+    bx.fillStyle=cols[i]; bx.fillRect(cx-bw/2,y,bw,bh);
+    bx.fillStyle=cols[i]; bx.font='bold 12px Calibri'; bx.textAlign='center'; bx.fillText(fmt(v),cx,y-4);
+    bx.fillStyle=CSS.slate; bx.font='11.5px Calibri'; bx.fillText(labels[i],cx,base+16); });
+  bx.strokeStyle=CSS.line; bx.beginPath(); bx.moveTo(6,base); bx.lineTo(w-6,base); bx.stroke();
+}
+MATS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=m[0]; el('mat').appendChild(o); });
+el('mat').addEventListener('change',e=>{im=+e.target.value;compute();});
+['rec','m','t'].forEach(id=>el(id).addEventListener('input',compute));
+window.addEventListener('resize',compute);
+compute();
+</script>
+</body>
+</html>

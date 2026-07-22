@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electrochemical Cell — Break a Leg, Stop Corrosion</title>
+<style>
+  :root{--navy:#1F3864;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;--purp:#6D4C7D;--steel:#2E5496;--green:#2C6E49;--slate:#3F4A5A;--mut:#6B7480;--line:#C7CFDA;--ice:#D9E1F2;--light:#F1F4F8;--bg:#FFFFFF;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--slate);font-family:Calibri,'Segoe UI',system-ui,sans-serif;line-height:1.45;}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 20px 40px;}
+  h1{font-family:Cambria,Georgia,serif;color:var(--navy);font-size:25px;margin:2px 0 2px;}
+  .sub{color:var(--mut);font-size:15px;margin:0 0 14px;}
+  .stage{background:var(--light);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:18px;flex-wrap:wrap;}
+  .canvaswrap{flex:1 1 540px;min-width:340px;}
+  canvas{width:100%;height:auto;display:block;border-radius:8px;background:#fff;}
+  .panel{flex:1 1 290px;min-width:270px;}
+  .legs{display:flex;flex-direction:column;gap:8px;}
+  .leg{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer;user-select:none;}
+  .leg .sw{width:42px;height:24px;border-radius:14px;background:var(--green);position:relative;flex:0 0 auto;transition:background .15s;}
+  .leg .sw::after{content:"";position:absolute;top:2px;left:20px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s;}
+  .leg.off .sw{background:var(--mut);}
+  .leg.off .sw::after{left:2px;}
+  .leg .txt b{font-size:14px;color:var(--navy);} .leg .txt small{display:block;color:var(--mut);font-size:12px;}
+  .status{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+  .status .big{font-family:Cambria,serif;font-size:19px;font-weight:bold;}
+  .status .why{font-size:13px;color:var(--slate);margin-top:4px;}
+  .hint{font-size:13px;color:var(--mut);margin:8px 2px 0;} b.term{color:var(--navy);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The corrosion cell — break any leg, stop the rust</h1>
+  <p class="sub">Corrosion needs all four legs at once: an <b style="color:var(--terra)">anode</b>, a <b style="color:var(--steel)">cathode</b>, an <b>electron path</b> through the metal, and an <b>electrolyte</b>.
+     Toggle one off and the current stops — that is exactly how every prevention method works.</p>
+
+  <div class="stage">
+    <div class="canvaswrap">
+      <canvas id="cv" width="720" height="440"></canvas>
+    </div>
+    <div class="panel">
+      <div class="legs" id="legs">
+        <div class="leg" data-k="anode"><div class="sw"></div><div class="txt"><b>Anode (metal to protect)</b><small>where oxidation & metal loss happen</small></div></div>
+        <div class="leg" data-k="cathode"><div class="sw"></div><div class="txt"><b>Cathode</b><small>where reduction consumes the electrons</small></div></div>
+        <div class="leg" data-k="path"><div class="sw"></div><div class="txt"><b>Electron path (metal)</b><small>lets electrons travel anode → cathode</small></div></div>
+        <div class="leg" data-k="electrolyte"><div class="sw"></div><div class="txt"><b>Electrolyte (water)</b><small>lets ions move to complete the circuit</small></div></div>
+      </div>
+      <div class="status">
+        <div class="big" id="sbig">—</div>
+        <div class="why" id="swhy"></div>
+      </div>
+    </div>
+  </div>
+  <p class="hint"><b class="term">Every fix removes a leg.</b> Keep it dry or add inhibitors → no working <b>electrolyte</b>. Paint or coat it → no <b>cathode</b> reaction at the surface.
+     Insulate a dissimilar-metal joint → no <b>electron path</b>. Add a sacrificial zinc anode → it becomes the <b>anode</b> instead, so your steel stops being one.</p>
+</div>
+
+<script>
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const CSS={navy:'#1F3864',terra:'#B85042',teal:'#1F7A63',amber:'#E8890C',steel:'#2E5496',green:'#2C6E49',slate:'#3F4A5A',mut:'#6B7480',line:'#C7CFDA'};
+const on={anode:true,cathode:true,path:true,electrolyte:true};
+const FIX={anode:'Add a sacrificial anode (e.g. zinc): it corrodes instead, so this metal is no longer the anode. → cathodic protection / galvanizing.',
+  cathode:'Coat or paint the surface so no reduction reaction can run there. → barrier coatings.',
+  path:'Insulate the joint between dissimilar metals so electrons can’t travel. → isolating a galvanic couple.',
+  electrolyte:'Keep it dry or add inhibitors so ions can’t move. → dehumidify, drainage, inhibitors.'};
+const NAME={anode:'anode',cathode:'cathode',path:'electron path',electrolyte:'electrolyte'};
+let W=720,H=440,t=0;
+
+function draw(){
+  const dpr=window.devicePixelRatio||1,cssW=cv.clientWidth||720,cssH=cssW*(H/W);
+  cv.width=cssW*dpr;cv.height=cssH*dpr;W=cssW;H=cssH;ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);ctx.font='12px Calibri';
+  const running = on.anode&&on.cathode&&on.path&&on.electrolyte;
+
+  const exL=W*0.30, exR=W*0.70, ew=42, etop=95, ebot=H-70;
+  // electrolyte
+  if(on.electrolyte){ ctx.fillStyle='#E7F0FA'; } else { ctx.fillStyle='#F2F2F0'; }
+  ctx.strokeStyle=on.electrolyte?CSS.steel:CSS.mut; ctx.lineWidth=1.5;
+  rr(110,150,W-220,H-195,10); ctx.fill(); ctx.stroke();
+  ctx.fillStyle=on.electrolyte?CSS.steel:CSS.mut; ctx.textAlign='center'; ctx.font='italic 12px Calibri';
+  ctx.fillText(on.electrolyte?'electrolyte (moist, conductive)':'electrolyte removed (dry)',W/2,H-22);
+
+  // electrodes
+  drawEl(exL,etop,ebot,ew,'#8A939E',on.anode, running,'ANODE',CSS.terra);
+  drawEl(exR,etop,ebot,ew,'#C9772F',on.cathode,running,'CATHODE',CSS.steel);
+
+  // wire
+  ctx.strokeStyle=on.path?CSS.slate:CSS.mut; ctx.lineWidth=2.2; ctx.setLineDash(on.path?[]:[6,5]);
+  ctx.beginPath(); ctx.moveTo(exL,etop); ctx.lineTo(exL,58); ctx.lineTo(exR,58); ctx.lineTo(exR,etop); ctx.stroke(); ctx.setLineDash([]);
+  if(!on.path){ // break gap
+    ctx.fillStyle='#fff'; ctx.fillRect(W/2-14,50,28,16);
+    ctx.strokeStyle=CSS.terra; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(W/2-8,50); ctx.lineTo(W/2+8,66); ctx.moveTo(W/2+8,50); ctx.lineTo(W/2-8,66); ctx.stroke();
+  }
+  ctx.fillStyle=CSS.slate; ctx.font='12px Calibri'; ctx.textAlign='center'; ctx.fillText('electron path (metal)',W/2,44);
+
+  // moving electrons on wire + ions in solution (only if running)
+  if(running){
+    for(let i=0;i<6;i++){ const f=((t*0.9+i*40)%240)/240; // along top wire L->R
+      const x=exL+(exR-exL)*f, y=58; ctx.fillStyle=CSS.amber; ctx.beginPath(); ctx.arc(x,y,3.5,0,7); ctx.fill(); }
+    ctx.fillStyle=CSS.amber; ctx.font='bold 12px Calibri'; ctx.fillText('e⁻ →',W/2,72);
+    // ions in solution
+    for(let i=0;i<5;i++){ const f=((t*0.7+i*50)%260)/260; const x=exL+20+(exR-exL-40)*f, y=H*0.55;
+      ctx.fillStyle=CSS.terra; ctx.beginPath(); ctx.arc(x,y,4,0,7); ctx.fill(); }
+    // Fe2+ label near anode
+    ctx.fillStyle=CSS.terra; ctx.font='bold 11px Calibri'; ctx.textAlign='left'; ctx.fillText('Fe²⁺',exL+ew/2+8,H*0.5);
+  }
+  drawStatus(running);
+}
+function drawEl(cx,top,bot,w,col,active,running,label,lcol){
+  ctx.fillStyle=active?col:'#D8DCE0'; ctx.strokeStyle=active?CSS.slate:CSS.mut; ctx.lineWidth=1.5;
+  ctx.fillRect(cx-w/2,top,w,bot-top); ctx.strokeRect(cx-w/2,top,w,bot-top);
+  if(label==='ANODE'&&running){ ctx.fillStyle='#E7F0FA'; for(let yy=top+35;yy<bot-8;yy+=24){ ctx.beginPath(); ctx.arc(cx-w/2,yy,3.4,0,7); ctx.fill(); } }
+  ctx.fillStyle=active?lcol:CSS.mut; ctx.textAlign='center'; ctx.font='bold 12.5px Cambria';
+  ctx.fillText(active?label:label+' (off)', cx, top-10);
+}
+function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function drawStatus(running){
+  const b=document.getElementById('sbig'), w=document.getElementById('swhy');
+  if(running){ b.textContent='⚠ Corrosion is running'; b.style.color=CSS.terra;
+    w.textContent='All four legs present — an electrochemical cell forms and the anode dissolves.'; }
+  else { b.textContent='✓ Corrosion stopped'; b.style.color=CSS.green;
+    const missing=Object.keys(on).filter(k=>!on[k]);
+    w.textContent='Missing the '+missing.map(k=>NAME[k]).join(' + ')+'. '+FIX[missing[0]]; }
+}
+document.querySelectorAll('#legs .leg').forEach(l=>{ l.classList.toggle('off',!on[l.dataset.k]);
+  l.addEventListener('click',()=>{ const k=l.dataset.k; on[k]=!on[k]; l.classList.toggle('off',!on[k]); }); });
+function loop(){ t+=1.6; draw(); requestAnimationFrame(loop); }
+window.addEventListener('resize',draw);
+loop();
+</script>
+</body>
+</html>

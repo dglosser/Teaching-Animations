@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corrosion Rate (CPR) Calculator</title>
+<style>
+  :root{--navy:#1F3864;--terra:#B85042;--teal:#1F7A63;--amber:#E8890C;--purp:#6D4C7D;--steel:#2E5496;--green:#2C6E49;--slate:#3F4A5A;--mut:#6B7480;--line:#C7CFDA;--ice:#D9E1F2;--light:#F1F4F8;--bg:#FFFFFF;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--slate);font-family:Calibri,'Segoe UI',system-ui,sans-serif;line-height:1.45;}
+  .wrap{max-width:960px;margin:0 auto;padding:18px 20px 40px;}
+  h1{font-family:Cambria,Georgia,serif;color:var(--navy);font-size:25px;margin:2px 0 2px;}
+  .sub{color:var(--mut);font-size:15px;margin:0 0 14px;}
+  .stage{display:flex;gap:18px;flex-wrap:wrap;}
+  .col{flex:1 1 330px;min-width:300px;background:var(--light);border:1px solid var(--line);border-radius:12px;padding:16px;}
+  h3{font-family:Cambria,serif;color:var(--navy);font-size:16px;margin:0 0 8px;}
+  .slab{margin:12px 0;}
+  .slab .top{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:2px;}
+  .slab .top b{color:var(--navy);font-size:15px;}
+  input[type=range]{width:100%;accent-color:var(--terra);}
+  .desc{font-size:12px;color:var(--mut);}
+  .formula{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;font-family:Cambria,serif;margin-top:6px;}
+  .formula .big{font-size:17px;color:var(--navy);font-weight:bold;}
+  .formula .plug{font-size:14px;color:var(--slate);margin-top:6px;}
+  .result{text-align:center;margin-top:6px;}
+  .result .num{font-family:Cambria,serif;font-size:40px;font-weight:bold;}
+  .result .unit{font-size:16px;color:var(--mut);}
+  .verdict{display:inline-block;padding:5px 16px;border-radius:20px;color:#fff;font-weight:bold;font-size:15px;margin-top:6px;}
+  .gauge{height:16px;border-radius:8px;margin-top:12px;background:linear-gradient(90deg,var(--green) 0%,var(--green) 25%,var(--amber) 50%,var(--terra) 100%);position:relative;border:1px solid var(--line);}
+  .needle{position:absolute;top:-4px;width:3px;height:24px;background:var(--navy);border-radius:2px;transform:translateX(-50%);transition:left .15s;}
+  .scale{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:3px;}
+  .hint{font-size:13px;color:var(--mut);margin:8px 2px 0;} b.term{color:var(--navy);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Corrosion Rate Calculator (CPR)</h1>
+  <p class="sub">Weigh a coupon before and after exposure and you can compute how fast the surface is receding. Slide the four inputs and watch the
+     <b>corrosion penetration rate</b> — and whether the part would survive service.</p>
+
+  <div class="stage">
+    <div class="col">
+      <h3>Inputs (from a weight-loss test)</h3>
+      <div class="slab"><div class="top"><span>W — mass lost</span><b id="lW">500 mg</b></div><input type="range" id="W" min="5" max="2000" step="5" value="500"><div class="desc">how much metal dissolved away</div></div>
+      <div class="slab"><div class="top"><span>ρ — density</span><b id="lR">7.85 g/cm³</b></div><input type="range" id="R" min="1.5" max="12" step="0.05" value="7.85"><div class="desc">density of the metal (steel ≈ 7.85)</div></div>
+      <div class="slab"><div class="top"><span>A — exposed area</span><b id="lA">20 cm²</b></div><input type="range" id="A" min="2" max="200" step="1" value="20"><div class="desc">surface area that was in contact</div></div>
+      <div class="slab"><div class="top"><span>t — exposure time</span><b id="lT">100 h</b></div><input type="range" id="T" min="10" max="2000" step="10" value="100"><div class="desc">how long it was exposed</div></div>
+    </div>
+
+    <div class="col">
+      <h3>Corrosion penetration rate</h3>
+      <div class="formula">
+        <div class="big">CPR = (K · W) / (ρ · A · t)</div>
+        <div class="plug" id="plug">= (87.6 × 500) / (7.85 × 20 × 100)</div>
+      </div>
+      <div class="result">
+        <div class="num" id="cpr" style="color:var(--terra)">2.79</div>
+        <div class="unit">mm per year</div>
+        <div><span class="verdict" id="verdict">high — needs protection</span></div>
+      </div>
+      <div class="gauge"><div class="needle" id="needle" style="left:70%"></div></div>
+      <div class="scale"><span>0</span><span>0.15</span><span>0.5</span><span>2</span><span>5+ mm/yr</span></div>
+      <div class="hint" style="margin-top:12px" id="note"></div>
+    </div>
+  </div>
+  <p class="hint"><b class="term">What the letters mean.</b> <b>CPR</b> = corrosion penetration rate (how deep the surface eats in per year).
+     <b>K</b> = 87.6, a unit constant that makes the answer come out in mm/yr when W is in mg, ρ in g/cm³, A in cm², t in hours.
+     A rate under ~0.5 mm/yr is fine for most structures; above ~2 mm/yr the part won't last.</p>
+</div>
+
+<script>
+const K=87.6;
+const CSS={green:'#2C6E49',amber:'#E8890C',terra:'#B85042',navy:'#1F3864',mut:'#6B7480'};
+const el=id=>document.getElementById(id);
+function fmt(v){ return v>=100? v.toFixed(0): v>=10? v.toFixed(1): v.toFixed(2); }
+function compute(){
+  const W=+el('W').value, R=+el('R').value, A=+el('A').value, T=+el('T').value;
+  el('lW').textContent=W+' mg'; el('lR').textContent=R.toFixed(2)+' g/cm³'; el('lA').textContent=A+' cm²'; el('lT').textContent=T+' h';
+  const cpr=(K*W)/(R*A*T);
+  el('plug').textContent='= ('+K+' × '+W+') / ('+R.toFixed(2)+' × '+A+' × '+T+')';
+  el('cpr').textContent=fmt(cpr);
+  // verdict
+  let txt,col,note;
+  if(cpr<0.15){ txt='excellent'; col=CSS.green; note='Outstanding durability — typical of a well-matched, corrosion-resistant material.'; }
+  else if(cpr<0.5){ txt='acceptable'; col=CSS.green; note='Fine for most structural service. A modest corrosion allowance covers it.'; }
+  else if(cpr<2){ txt='marginal — watch it'; col=CSS.amber; note='Usable only with a real corrosion allowance, coating, or scheduled inspection.'; }
+  else { txt='high — needs protection'; col=CSS.terra; note='Too fast for long service. Change the alloy, coat it, add cathodic protection, or fix the environment.'; }
+  el('cpr').style.color=col;
+  const v=el('verdict'); v.textContent=txt; v.style.background=col;
+  el('note').textContent=note;
+  // needle: map cpr on a piecewise scale matching gauge stops 0,0.15,0.5,2,5
+  const stops=[0,0.15,0.5,2,5], segs=[0,25,50,75,100];
+  let pos=100; for(let i=0;i<stops.length-1;i++){ if(cpr<=stops[i+1]){ pos=segs[i]+(cpr-stops[i])/(stops[i+1]-stops[i])*(segs[i+1]-segs[i]); break; } }
+  el('needle').style.left=Math.max(0,Math.min(100,pos))+'%';
+}
+['W','R','A','T'].forEach(id=>el(id).addEventListener('input',compute));
+compute();
+</script>
+</body>
+</html>

@@ -11,7 +11,7 @@
 <style>
   :root{
     --ink:#1a2233; --navy:#1F3864; --teal:#1a7a62; --terra:#b1493c; --amber:#b0740c; --plum:#6d4c8f;
-    --rose:#a63a5e; --steel:#3f6f92; --ember:#c0562a; --moss:#6f7a2e;
+    --rose:#a63a5e; --steel:#3f6f92; --ember:#c0562a; --moss:#6f7a2e; --slate:#566579; --leaf:#2e8b57;
     --bg:#eef1f6; --panel:#ffffff; --line:#d7dee8; --mut:#5f6a7a;
     --serif:'Fraunces',Georgia,'Times New Roman',serif;
     --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
@@ -64,6 +64,8 @@
   .t-phase{color:var(--steel); background:rgba(63,111,146,.10)}
   .t-heat{color:var(--ember); background:rgba(192,86,42,.10)}
   .t-comp{color:var(--moss); background:rgba(111,122,46,.12)}
+  .t-corr{color:var(--slate); background:rgba(86,101,121,.12)}
+  .t-sustain{color:var(--leaf); background:rgba(46,139,87,.11)}
   h2{
     font-family:var(--serif); font-weight:500; font-size:clamp(22px,3vw,30px);
     line-height:1.15; margin:0; color:var(--ink); letter-spacing:-.01em;
@@ -601,6 +603,74 @@
       </div>
       <div class="frame"><iframe src="ashby-chart-selector.html" loading="lazy" title="Ashby chart material selection by material index"></iframe></div>
       <div class="card-foot"><a class="open" href="ashby-chart-selector.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+  </section>
+
+  <section id="corrosion" aria-labelledby="corrosion-h">
+    <div class="sec-head">
+      <span class="sec-tag t-corr">Corrosion &amp; degradation</span>
+    </div>
+    <h2 id="corrosion-h">Why metals corrode, which one goes first, and how fast</h2>
+    <div class="sec-rule"></div>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">32</span>
+          <span class="chip">anode &middot; cathode &middot; electrolyte</span>
+        </div>
+        <h3>Break any leg, stop the rust</h3>
+        <p class="desc">Corrosion needs four things at once &mdash; an anode, a cathode, an electron path through the metal, and an electrolyte. Toggle any one off and the current stops. That's exactly how every prevention method works: keep it dry or add inhibitors (no electrolyte), paint it (no cathode reaction), insulate a dissimilar-metal joint (no electron path), or bolt on a sacrificial zinc anode so your steel stops being the anode.</p>
+      </div>
+      <div class="frame"><iframe src="electrochemical-cell-toggle.html" loading="lazy" title="The four-part corrosion cell and how each prevention method removes a leg"></iframe></div>
+      <div class="card-foot"><a class="open" href="electrochemical-cell-toggle.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">33</span>
+          <span class="chip">active vs noble</span>
+        </div>
+        <h3>Who corrodes?</h3>
+        <p class="desc">Bolt two different metals together in salt water and one is sacrificed. Pick a pair and see: the more active metal (the more negative electrode potential) becomes the anode and dissolves, while the nobler one is protected. The driving voltage is the gap between them &mdash; a bigger gap means a stronger cell and faster attack, which is why you never bolt bare aluminium to copper outdoors.</p>
+      </div>
+      <div class="frame"><iframe src="galvanic-couple-explorer.html" loading="lazy" title="Galvanic couple: which of two metals corrodes and the driving voltage"></iframe></div>
+      <div class="card-foot"><a class="open" href="galvanic-couple-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">34</span>
+          <span class="chip">CPR = KW/&rho;At</span>
+        </div>
+        <h3>How fast the surface recedes</h3>
+        <p class="desc">Weigh a coupon before and after exposure and compute how fast the surface is receding: CPR = K&middot;W/(&rho;&middot;A&middot;t), with K a unit constant that gives millimetres per year. Slide mass loss, density, area, and time and watch the penetration rate &mdash; under about 0.5 mm/yr is fine for most structures, while above ~2 mm/yr the part won't last.</p>
+      </div>
+      <div class="frame"><iframe src="cpr-calculator.html" loading="lazy" title="Corrosion penetration rate from a weight-loss test"></iframe></div>
+      <div class="card-foot"><a class="open" href="cpr-calculator.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
+    </article>
+  </section>
+
+  <section id="sustainability" aria-labelledby="sustainability-h">
+    <div class="sec-head">
+      <span class="sec-tag t-sustain">Sustainability &amp; life cycle</span>
+    </div>
+    <h2 id="sustainability-h">What a material really costs &mdash; in energy and carbon</h2>
+    <div class="sec-rule"></div>
+
+    <article class="card">
+      <div class="card-head">
+        <div class="card-top">
+          <span class="num">35</span>
+          <span class="chip">embodied energy &middot; CO&#8322;</span>
+        </div>
+        <h3>A material's real cost</h3>
+        <p class="desc">A material's real cost isn't its price &mdash; it's the embodied energy and carbon locked into pulling the ore, refining it, and forming the part, spread over how long the part lasts. Choose a material, its recycled content, and its service life: recycling skips most of the refining step and slashes energy and CO&#8322; (hugely for aluminium), and doubling the service life halves the impact per year.</p>
+      </div>
+      <div class="frame"><iframe src="lifecycle-footprint-explorer.html" loading="lazy" title="Life-cycle embodied energy and carbon footprint of a material choice"></iframe></div>
+      <div class="card-foot"><a class="open" href="lifecycle-footprint-explorer.html" target="_blank" rel="noopener">Open full &nearr;</a></div>
     </article>
   </section>
 
